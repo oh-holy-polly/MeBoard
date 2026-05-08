@@ -676,57 +676,9 @@ export default function Dashboard() {
 
       {activeTab === 'goals_all' && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    {/* Визуализация Созвездие */}
-          <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem', textAlign: 'center', overflow: 'hidden', position: 'relative' }}>
-            <h3 className="serif" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Ваше созвездие недели</h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '2rem' }}>Зажигайте звезды, выполняя привычки</p>
-            <div style={{ height: '200px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <svg width="100%" height="100%" viewBox="0 0 400 200" style={{ maxWidth: '600px' }}>
-                {(() => {
-                  const points = [...Array(7)].map((_, i) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1) + i);
-                    const dateStr = d.toISOString().split('T')[0];
-                    const isToday = dateStr === new Date().toISOString().split('T')[0];
-                    const doneCount = isToday 
-                      ? habits.filter(h => h.is_completed).length 
-                      : habitLogs.filter(l => l.date === dateStr && l.completed).length;
-                    const x = 50 + i * 50;
-                    const y = 150 - (doneCount * 30);
-                    return { x, y, active: doneCount > 0, date: dateStr };
-                  });
-
-                  return (
-                    <>
-                      {/* Линии созвездия */}
-                      {points.map((p, i) => i < points.length - 1 && p.active && points[i+1].active && (
-                        <motion.line 
-                          key={`line-${i}`}
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          x1={p.x} y1={p.y} x2={points[i+1].x} y2={points[i+1].y} 
-                          stroke="var(--accent-gold)" strokeWidth="1" strokeDasharray="4 2" opacity="0.4"
-                        />
-                      ))}
-                      {/* Звезды */}
-                      {points.map((p, i) => (
-                        <g key={`star-${i}`}>
-                          <motion.circle 
-                            cx={p.x} cy={p.y} r={p.active ? 4 : 2} 
-                            fill={p.active ? 'var(--accent-gold)' : 'var(--border-elegant)'}
-                            animate={p.active ? { r: [4, 6, 4], opacity: [0.6, 1, 0.6] } : {}}
-                            transition={{ repeat: Infinity, duration: 2 + i }}
-                          />
-                          {p.active && (
-                            <circle cx={p.x} cy={p.y} r="10" fill="var(--accent-gold)" opacity="0.1" />
-                          )}
-                        </g>
-                      ))}
-                    </>
-                  );
-                })()}
-              </svg>
-            </div>
+          {/* Визуализация Созвездие - Living Sky */}
+          <div className="glass-card" style={{ padding: '2rem', marginBottom: '3rem', textAlign: 'center', overflow: 'hidden', position: 'relative', minHeight: '300 px' }}>
+            <LivingSky habits={habits} habitLogs={habitLogs} />
           </div>
           {/* Heatmap привычек */}
           <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem' }}>
