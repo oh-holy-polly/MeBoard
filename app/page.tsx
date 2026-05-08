@@ -25,10 +25,33 @@ export default function Dashboard() {
   const [taskDescription, setTaskDescription] = useState('');
   const [goalStep, setGoalStep] = useState(1);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
+  
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newTaskTime, setNewTaskTime] = useState('');
+  const [isNewTaskAllDay, setIsNewTaskAllDay] = useState(true);
+  const [newGoalTitle, setNewGoalTitle] = useState('');
+  const [newHabitName, setNewHabitName] = useState('');
+  const [newHabitSchedule, setNewHabitSchedule] = useState('daily');
+  const [selectedGoalId, setSelectedGoalId] = useState('');
+  const [loginId, setLoginId] = useState('');
 
+  // Проверка авторизации при загрузке
+  useEffect(() => {
+    const savedId = localStorage.getItem('meboard_user_id');
+    if (savedId) {
+      setUserId(savedId);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toISOString().split('T')[0]);
+  const [habitLogs, setHabitLogs] = useState<any[]>([]);
   const skyStars: Star[] = useMemo(() => {
   const now = new Date();
-  const currentDay = now.getDay();              // 0 = Sun
+  const currentDay = now.getDay();
   const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
   const monday = new Date(now);
   monday.setDate(now.getDate() - diffToMonday);
@@ -55,30 +78,6 @@ export default function Dashboard() {
     return { day, completion: total > 0 ? done / total : 0 };
   });
 }, [habits, habitLogs]);
-  
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
-  const [newTaskTime, setNewTaskTime] = useState('');
-  const [isNewTaskAllDay, setIsNewTaskAllDay] = useState(true);
-  const [newGoalTitle, setNewGoalTitle] = useState('');
-  const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitSchedule, setNewHabitSchedule] = useState('daily');
-  const [selectedGoalId, setSelectedGoalId] = useState('');
-  const [loginId, setLoginId] = useState('');
-
-  // Проверка авторизации при загрузке
-  useEffect(() => {
-    const savedId = localStorage.getItem('meboard_user_id');
-    if (savedId) {
-      setUserId(savedId);
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toISOString().split('T')[0]);
-  const [habitLogs, setHabitLogs] = useState<any[]>([]);
 
   // Загрузка данных
   const fetchData = async () => {
