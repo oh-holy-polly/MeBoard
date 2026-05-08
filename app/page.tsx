@@ -761,16 +761,42 @@ export default function Dashboard() {
                       const isDone = isToday 
                         ? habit.is_completed 
                         : habitLogs.some(l => l.habit_id === habit.id && l.date === dateStr && l.completed);
+                      const toggleHabitLog = async (habitId: string, dateStr: string, currentDone: boolean) => {
+                        if (!userId) return;
+                        const newCompleted = !currentDone;
+
+                        // Оптимистичное обновление локального стейта
+                        setHabitLogs(prev => {
+                          const exists = prev.some(l => l.habit_id === habitId && l.date === dateStr);
+                          if (exists) {
+                            return prev.map(l =>
+                              l.habit_id === habitId && l.date === dateStr ? { ...l, completed: newCompleted } : l
+                            );
+                          }
+                          return [...prev, { habit_id: habitId, date: dateStr, completed: newCompleted }];
+                        });
+
+                        await fetch('/api/habit-logs', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+                          body: JSON.stringify({ habit_id: habitId, date: dateStr, completed: newCompleted }),
+                        });
+                      };
                       return (
                         <div 
                           key={i} 
                           title={dateStr}
+                          onClick={() => { 
+                            const isFuture = dateStr > new Date().toISOString().split('T')[0]; 
+                            if (!isFuture) toggleHabitLog(habit.id, dateStr, isDone);
+                          }}
                           style={{ 
-                            width: '12px', 
-                            height: '12px', 
-                            borderRadius: '2px', 
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '2px',
                             background: isDone ? 'var(--accent-primary)' : 'var(--border-elegant)',
-                            opacity: isDone ? 1 : 0.3
+                            opacity: isDone ? 1 : 0.3,
+                            cursor: dateStr > new Date().toISOString().split('T')[0] ? 'default' : 'pointer',
                           }} 
                         />
                       );
