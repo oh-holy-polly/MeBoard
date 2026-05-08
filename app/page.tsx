@@ -51,22 +51,32 @@ export default function Dashboard() {
   const [habitLogs, setHabitLogs] = useState<any[]>([]);
   const skyStars: Star[] = useMemo(() => {
   const now = new Date();
-  const currentDay = now.getDay();
+  const currentDay = now.getDay();              // 0 = Sun, 1 = Mon, ..., 6 = Sat
   const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
   const monday = new Date(now);
   monday.setDate(now.getDate() - diffToMonday);
   monday.setHours(0, 0, 0, 0);
 
   const dayKeys: DayKey[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const todayStr = now.toISOString().split('T')[0];
+  const todayKey = dayKeys[diffToMonday];       // ключ сегодняшнего дня
+
+  // Локальная дата YYYY-MM-DD (без UTC-сдвига)
+  const formatLocal = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const total = habits.length;
 
   return dayKeys.map((day, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
-    const isToday = dateStr === todayStr;
-    const isFuture = d.getTime() > now.getTime();
+    d.setHours(12, 0, 0, 0);                    // полдень — чтобы избежать DST-граней
+    const dateStr = formatLocal(d);
+    const isToday = day === todayKey;
+    const isFuture = formatLocal(d) > formatLocal(now);
 
     let done = 0;
     if (!isFuture) {
@@ -74,7 +84,6 @@ export default function Dashboard() {
         ? habits.filter((h: any) => h.is_completed).length
         : habitLogs.filter((l: any) => l.date === dateStr && l.completed).length;
     }
-
     return { day, completion: total > 0 ? done / total : 0 };
   });
 }, [habits, habitLogs]);
