@@ -686,7 +686,10 @@ export default function Dashboard() {
                     const d = new Date();
                     d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1) + i);
                     const dateStr = d.toISOString().split('T')[0];
-                    const doneCount = habitLogs.filter(l => l.date === dateStr && l.completed).length;
+                    const isToday = dateStr === new Date().toISOString().split('T')[0];
+                    const doneCount = isToday 
+                      ? habits.filter(h => h.is_completed).length 
+                      : habitLogs.filter(l => l.date === dateStr && l.completed).length;
                     const x = 50 + i * 50;
                     const y = 150 - (doneCount * 30);
                     return { x, y, active: doneCount > 0, date: dateStr };
@@ -736,7 +739,10 @@ export default function Dashboard() {
                       const d = new Date();
                       d.setDate(d.getDate() - (29 - i));
                       const dateStr = d.toISOString().split('T')[0];
-                      const isDone = habitLogs.some(l => l.habit_id === habit.id && l.date === dateStr && l.completed);
+                      const isToday = dateStr === new Date().toISOString().split('T')[0];
+                      const isDone = isToday 
+                        ? habit.is_completed 
+                        : habitLogs.some(l => l.habit_id === habit.id && l.date === dateStr && l.completed);
                       return (
                         <div 
                           key={i} 
