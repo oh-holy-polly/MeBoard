@@ -137,16 +137,17 @@ const StarShape: React.FC<{ size: number; color?: string }> = ({ size: s, color 
 );
 
 const CenterStar: React.FC = () => (
-  <motion.g
-    transform="translate(50 50)"
-    initial={{ opacity: 0, scale: 0.6 }}
-    animate={{ opacity: [0.9, 1, 0.9], scale: [1, 1.05, 1] }}
-    transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-    style={{ filter: 'url(#ls-glow-strong)' }}
-  >
-    <StarShape size={3.4} />
-    <circle r={4.6} fill="none" stroke="rgba(255, 245, 220, 0.55)" strokeWidth={0.13} />
-  </motion.g>
+  <g transform="translate(50 50)">
+    <motion.g
+      initial={{ opacity: 0, scale: 0.6 }}
+      animate={{ opacity: [0.9, 1, 0.9], scale: [1, 1.05, 1] }}
+      transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      style={{ filter: 'url(#ls-glow-strong)', transformOrigin: 'center' }}
+    >
+      <StarShape size={3.4} />
+      <circle r={4.6} fill="none" stroke="rgba(255, 245, 220, 0.55)" strokeWidth={0.13} />
+    </motion.g>
+  </g>
 );
 
 interface DayStarProps {
@@ -155,9 +156,9 @@ interface DayStarProps {
 }
 
 const DayStar: React.FC<DayStarProps> = ({ star, index }) => {
-  // LVL влияет на размер ореола и силу свечения
-  const haloR = 2.4 + star.level * 1.0; // 2.4 → 5.4
-  const starSize = 1.1 + star.level * 0.45; // 1.1 → 2.45
+  // LVL 0..3 одинаково влияют на размер ореола и звезды (Вариант B)
+  const haloR = 2.0 + star.level * 0.9; // 2.0 → 4.7
+  const starSize = 0.85 + star.level * 0.45; // 0.85 → 2.2
   const flickerDur = 3 + ((index * 1.3) % 3);
   const flickerDelay = (index * 0.71) % 4;
 
@@ -165,87 +166,74 @@ const DayStar: React.FC<DayStarProps> = ({ star, index }) => {
   const labelY = haloR + 4.2;
   const lvlY = labelY + 3.2;
 
-  if (!star.active) {
-    // Тусклая точка — без ореола, без линий
-    return (
-      <g transform={`translate(${star.x} ${star.y})`}>
-        <motion.circle
-          r={0.55}
-          fill="#ffffff"
-          initial={{ opacity: 0.15 }}
-          animate={{ opacity: [0.1, 0.22, 0.1] }}
-          transition={{ duration: flickerDur + 1, repeat: Infinity, ease: 'easeInOut', delay: flickerDelay }}
-        />
-        <text
-          y={4.6}
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.45)"
-          fontSize={2.6}
-          fontFamily="'Playfair Display', serif"
-          fontStyle="italic"
-        >
-          {DAY_LABELS_RU[star.day]}
-        </text>
-      </g>
-    );
-  }
-
-  // Уровень -> уровень фильтра свечения
+  // Уровень -> сила фильтра свечения
   const glowFilter =
-    star.level === 3 ? 'url(#ls-glow-strong)' : star.level === 2 ? 'url(#ls-glow-mid)' : 'url(#ls-glow-soft)';
+    star.level === 3 ? 'url(#ls-glow-strong)' :
+    star.level === 2 ? 'url(#ls-glow-mid)' :
+    'url(#ls-glow-soft)';
+
+  // Прозрачность ореола и звезды масштабируется по уровню
+  const haloMax = 0.35 + star.level * 0.13; // 0.35 → 0.74
+  const haloMin = haloMax * 0.6;
+  const starOpacityRange =
+    star.level === 0 ? [0.4, 0.6, 0.4] : [0.85, 1, 0.85];
 
   return (
     <g transform={`translate(${star.x} ${star.y})`}>
-      {/* Внешний ореол */}
+      {/* Внешний ореол — есть всегда, но слабее для LVL 0 */}
       <motion.circle
         r={haloR}
         fill="none"
         stroke="rgba(255, 245, 220, 0.55)"
         strokeWidth={0.12}
         initial={{ opacity: 0, scale: 0.6 }}
-        animate={{ opacity: [0.45, 0.75, 0.45], scale: [1, 1.04, 1] }}
+        animate={{ opacity: [haloMin, haloMax, haloMin], scale: [1, 1.04, 1] }}
         transition={{ duration: 5 + index * 0.27, repeat: Infinity, ease: 'easeInOut' }}
       />
-      {/* Внутренний слабый ореол — для глубины */}
-      <motion.circle
-        r={haloR * 0.62}
-        fill="none"
-        stroke="rgba(255, 245, 220, 0.25)"
-        strokeWidth={0.1}
-        animate={{ opacity: [0.25, 0.5, 0.25] }}
-        transition={{ duration: 4 + index * 0.21, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-      />
+      {/* Внутренний слабый ореол — только для LVL 2-3 (для глубины) */}
+      {star.level >= 2 && (
+        <motion.circle
+          r={haloR * 0.62}
+          fill="none"
+          stroke="rgba(255, 245, 220, 0.25)"
+          strokeWidth={0.1}
+          animate={{ opacity: [0.25, 0.5, 0.25] }}
+          transition={{ duration: 4 + index * 0.21, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+        />
+      )}
       {/* Тело звезды со свечением */}
       <motion.g
         style={{ filter: glowFilter }}
-        animate={{ opacity: [0.85, 1, 0.85] }}
+        animate={{ opacity: starOpacityRange }}
         transition={{ duration: flickerDur, repeat: Infinity, ease: 'easeInOut', delay: flickerDelay }}
       >
         <StarShape size={starSize} />
       </motion.g>
 
-      {/* Название дня */}
+      {/* Название дня — для LVL 0 чуть приглушённее */}
       <text
         y={labelY}
         textAnchor="middle"
-        fill="rgba(255,255,255,0.95)"
+        fill={star.level === 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.95)'}
         fontSize={3.0}
         fontFamily="'Playfair Display', serif"
         style={{ letterSpacing: '0.02em' }}
       >
         {DAY_LABELS_RU[star.day]}
       </text>
-      {/* LVL */}
-      <text
-        y={lvlY}
-        textAnchor="middle"
-        fill="rgba(255,255,255,0.7)"
-        fontSize={1.7}
-        fontFamily="'Inter', sans-serif"
-        style={{ letterSpacing: '0.18em' }}
-      >
-        LVL {star.level}
-      </text>
+      {/* LVL — показываем только для активных дней (LVL 1/2/3) */}
+      {star.level > 0 && (
+        <text
+          y={lvlY}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize={1.7}
+          fontFamily="'Inter', sans-serif"
+          style={{ letterSpacing: '0.18em' }}
+        >
+          LVL {star.level}
+        </text>
+      )}
     </g>
   );
 };
