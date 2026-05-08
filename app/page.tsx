@@ -7,7 +7,6 @@ import {
   CheckCircle2, Circle, Clock, TrendingUp, Calendar, Zap, Target, 
   Settings, User, Plus, Search, MoreHorizontal, ArrowRight, Loader2, Trash2
 } from 'lucide-react';
-import LivingSky from './LivingSky';
 import LivingSky, { type Star, type DayKey } from './LivingSky';
 
 export default function Dashboard() {
