@@ -8,6 +8,7 @@ import {
   Settings, User, Plus, Search, MoreHorizontal, ArrowRight, Loader2, Trash2
 } from 'lucide-react';
 import LivingSky from './LivingSky';
+import LivingSky, { type Star, type DayKey } from './LivingSky';
 
 export default function Dashboard() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -25,6 +26,36 @@ export default function Dashboard() {
   const [taskDescription, setTaskDescription] = useState('');
   const [goalStep, setGoalStep] = useState(1);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
+
+  const skyStars: Star[] = useMemo(() => {
+  const now = new Date();
+  const currentDay = now.getDay();              // 0 = Sun
+  const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const dayKeys: DayKey[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const todayStr = now.toISOString().split('T')[0];
+  const total = habits.length;
+
+  return dayKeys.map((day, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const isToday = dateStr === todayStr;
+    const isFuture = d.getTime() > now.getTime();
+
+    let done = 0;
+    if (!isFuture) {
+      done = isToday
+        ? habits.filter((h: any) => h.is_completed).length
+        : habitLogs.filter((l: any) => l.date === dateStr && l.completed).length;
+    }
+
+    return { day, completion: total > 0 ? done / total : 0 };
+  });
+}, [habits, habitLogs]);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
@@ -705,7 +736,7 @@ export default function Dashboard() {
               <h3 className="serif" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Ваше созвездие недели</h3>
               <p style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Зажигайте звезды, выполняя привычки</p>
             </div>
-            <LivingSky habitLogs={habitLogs} habits={habits} />
+            <LivingSky stars={skyStars} />
           </div>
           {/* Heatmap привычек */}
           <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem' }}>
