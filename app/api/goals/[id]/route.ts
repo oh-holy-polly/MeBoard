@@ -22,3 +22,21 @@ export async function PATCH(
   return NextResponse.json(data[0]);
 }
 
+
+// Удаление цели
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const userId = request.headers.get('x-user-id');
+  if (!userId) return NextResponse.json({ error: 'Missing user ID' }, { status: 401 });
+
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', params.id)
+    .eq('user_id', userId);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

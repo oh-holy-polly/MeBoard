@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion';
 import { 
   CheckCircle2, Circle, Clock, TrendingUp, Calendar, Zap, Target, 
-  Settings, User, Plus, Search, MoreHorizontal, ArrowRight, Loader2
+  Settings, User, Plus, Search, MoreHorizontal, ArrowRight, Loader2, Trash2
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -20,8 +20,12 @@ export default function Dashboard() {
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newTaskTime, setNewTaskTime] = useState('');
+  const [isNewTaskAllDay, setIsNewTaskAllDay] = useState(true);
   const [newGoalTitle, setNewGoalTitle] = useState('');
   const [newHabitName, setNewHabitName] = useState('');
+  const [newHabitSchedule, setNewHabitSchedule] = useState('daily');
   const [selectedGoalId, setSelectedGoalId] = useState('');
   const [loginId, setLoginId] = useState('');
 
@@ -96,17 +100,39 @@ export default function Dashboard() {
     setUserId(null);
   };
 
+  const openTaskModal = (date?: string) => {
+    setNewTaskTitle('');
+    setSelectedGoalId('');
+    setNewTaskDate(date || new Date().toISOString().split('T')[0]);
+    setNewTaskTime('');
+    setIsNewTaskAllDay(true);
+    setIsTaskModalOpen(true);
+  };
+
+  const formatTaskTime = (deadline?: string) => {
+    if (!deadline) return 'Весь день';
+    const date = new Date(deadline);
+    if (date.getHours() === 0 && date.getMinutes() === 0) return 'Весь день';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   // Создание задачи
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim() || !userId) return;
+    if (!isNewTaskAllDay && !newTaskTime) return;
+
+    const deadline = isNewTaskAllDay
+      ? newTaskDate
+      : `${newTaskDate}T${newTaskTime}:00`;
+
     try {
       await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ title: newTaskTitle, goal_id: selectedGoalId || null }),
+        body: JSON.stringify({ title: newTaskTitle, goal_id: selectedGoalId || null, deadline }),
       });
-      setNewTaskTitle(''); setSelectedGoalId(''); setIsTaskModalOpen(false);
+      setNewTaskTitle(''); setSelectedGoalId(''); setNewTaskTime(''); setIsNewTaskAllDay(true); setIsTaskModalOpen(false);
       fetchData();
     } catch (err) { console.error(err); }
   };
@@ -130,13 +156,21 @@ export default function Dashboard() {
   const addHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitName.trim() || !userId) return;
+
+    const schedulePayload =
+      newHabitSchedule === 'weekly'
+        ? { schedule_type: 'weekly', schedule_config: { weekdays: [new Date().getDay()] } }
+        : newHabitSchedule === 'every_other_day'
+          ? { schedule_type: 'custom', schedule_config: { interval: 2 } }
+          : { schedule_type: 'daily', schedule_config: {} };
+
     try {
       await fetch('/api/habits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ name: newHabitName, schedule_type: 'daily' }),
+        body: JSON.stringify({ name: newHabitName, ...schedulePayload }),
       });
-      setNewHabitName(''); setIsHabitModalOpen(false);
+      setNewHabitName(''); setNewHabitSchedule('daily'); setIsHabitModalOpen(false);
       fetchData();
     } catch (err) { console.error(err); }
   };
@@ -146,6 +180,15 @@ export default function Dashboard() {
     if (!confirm('Удалить эту задачу?') || !userId) return;
     try {
       await fetch(`/api/tasks/${id}`, { method: 'DELETE', headers: { 'x-user-id': userId } });
+      fetchData();
+    } catch (err) { console.error(err); }
+  };
+
+  // Удаление цели
+  const deleteGoal = async (id: string) => {
+    if (!confirm('Удалить эту цель? Связанные задачи останутся без цели.') || !userId) return;
+    try {
+      await fetch(`/api/goals/${id}`, { method: 'DELETE', headers: { 'x-user-id': userId } });
       fetchData();
     } catch (err) { console.error(err); }
   };
@@ -253,6 +296,14 @@ export default function Dashboard() {
             <h2 className="serif" style={{ marginBottom: '2rem' }}>Новая задача</h2>
             <form onSubmit={addTask}>
               <input autoFocus type="text" placeholder="Что планируете сделать?" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="elegant-input" />
+              <input type="date" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} className="elegant-input compact-input" />
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                <button type="button" onClick={() => setIsNewTaskAllDay(true)} className={isNewTaskAllDay ? 'btn-primary' : 'btn-secondary'}>Весь день</button>
+                <button type="button" onClick={() => setIsNewTaskAllDay(false)} className={!isNewTaskAllDay ? 'btn-primary' : 'btn-secondary'}>По времени</button>
+              </div>
+              {!isNewTaskAllDay && (
+                <input type="time" value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)} className="elegant-input compact-input" required />
+              )}
               <select value={selectedGoalId} onChange={e => setSelectedGoalId(e.target.value)} className="elegant-select">
                 <option value="">Без цели</option>
                 {goals.map(goal => <option key={goal.id} value={goal.id}>{goal.title}</option>)}
@@ -289,7 +340,12 @@ export default function Dashboard() {
             <h2 className="serif" style={{ marginBottom: '2rem' }}>Новая привычка</h2>
             <form onSubmit={addHabit}>
               <input autoFocus type="text" placeholder="Название привычки (напр. Чтение)" value={newHabitName} onChange={e => setNewHabitName(e.target.value)} className="elegant-input" />
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Будет появляться в вашем списке ежедневно.</p>
+              <select value={newHabitSchedule} onChange={e => setNewHabitSchedule(e.target.value)} className="elegant-select">
+                <option value="daily">Ежедневно</option>
+                <option value="every_other_day">Через день</option>
+                <option value="weekly">Раз в неделю</option>
+              </select>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Частоту можно выбрать при создании привычки.</p>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button type="button" onClick={() => setIsHabitModalOpen(false)} className="btn-secondary">Отмена</button>
                 <button type="submit" className="btn-primary">Добавить</button>
@@ -365,7 +421,7 @@ export default function Dashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
                 <h2 style={{ fontSize: '2rem' }}>Планы на день</h2>
                 <div 
-                  onClick={() => setIsTaskModalOpen(true)}
+                  onClick={() => openTaskModal()}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', cursor: 'pointer', fontSize: '0.9rem' }}
                 >
                   Добавить <Plus size={16} />
@@ -390,7 +446,7 @@ export default function Dashboard() {
                         color: task.status === 'done' ? 'var(--text-secondary)' : 'var(--text-primary)'
                       }} className="serif">{task.title}</h4>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        {task.deadline ? new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Весь день'}
+                        {formatTaskTime(task.deadline)}
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -420,7 +476,10 @@ export default function Dashboard() {
                   <div key={goal.id} style={{ marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                       <span className="serif" style={{ fontSize: '1.1rem' }}>{goal.title}</span>
-                      <span style={{ color: 'var(--accent-gold)', fontSize: '0.9rem' }}>{goal.progress}%</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ color: 'var(--accent-gold)', fontSize: '0.9rem' }}>{goal.progress}%</span>
+                        <Trash2 size={14} color="var(--text-secondary)" style={{ cursor: 'pointer', opacity: 0.45 }} onClick={() => deleteGoal(goal.id)} />
+                      </div>
                     </div>
                     <div className="progress-bar">
                       <motion.div initial={{ width: 0 }} animate={{ width: `${goal.progress}%` }} className="progress-fill" />
@@ -562,6 +621,12 @@ export default function Dashboard() {
               <h3 className="serif" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>
                 Планы на {new Date(selectedDate).toLocaleDateString('ru', { day: 'numeric', month: 'long' })}
               </h3>
+              <div
+                onClick={() => openTaskModal(selectedDate)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', cursor: 'pointer', fontSize: '0.9rem', marginBottom: '2rem' }}
+              >
+                Добавить <Plus size={16} />
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {tasks.filter(t => t.deadline?.startsWith(selectedDate)).length === 0 ? (
                   <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>В этот день пока нет назначенных задач.</p>
@@ -570,7 +635,10 @@ export default function Dashboard() {
                     <div key={task.id} className="todo-item" style={{ padding: '1rem 0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {task.status === 'done' ? <CheckCircle2 size={18} color="var(--accent-primary)" /> : <Circle size={18} color="var(--text-secondary)" />}
-                        <span style={{ fontSize: '1.1rem', textDecoration: task.status === 'done' ? 'line-through' : 'none', opacity: task.status === 'done' ? 0.5 : 1 }}>{task.title}</span>
+                        <div>
+                          <span style={{ fontSize: '1.1rem', textDecoration: task.status === 'done' ? 'line-through' : 'none', opacity: task.status === 'done' ? 0.5 : 1 }}>{task.title}</span>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{formatTaskTime(task.deadline)}</p>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -619,7 +687,10 @@ export default function Dashboard() {
                     <h3 className="serif" style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>{goal.title}</h3>
                     <p style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Архитектура достижений</p>
                   </div>
-                  <span style={{ fontSize: '2.5rem', fontWeight: 300, color: 'var(--accent-gold)', opacity: 0.5 }}>{goal.progress}%</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <span style={{ fontSize: '2.5rem', fontWeight: 300, color: 'var(--accent-gold)', opacity: 0.5 }}>{goal.progress}%</span>
+                    <Trash2 size={18} color="var(--text-secondary)" style={{ cursor: 'pointer', opacity: 0.45 }} onClick={() => deleteGoal(goal.id)} />
+                  </div>
                 </div>
 
                 <div className="progress-bar" style={{ height: '6px', marginBottom: '3rem' }}>

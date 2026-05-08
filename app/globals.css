@@ -275,3 +275,34 @@ h1, h2, h3, .serif {
   background: rgba(0, 0, 0, 0.02);
 }
 
+
+.compact-input {
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 640px) {
+  .calendar-grid {
+    border-radius: 18px !important;
+    gap: 0 !important;
+  }
+
+  .calendar-grid > div {
+    padding: 0.55rem !important;
+  }
+
+  .calendar-day {
+    min-height: 58px !important;
+    height: auto !important;
+    padding: 0.55rem !important;
+  }
+
+  .calendar-day span {
+    font-size: 1rem !important;
+  }
+
+  .modal-content {
+    width: calc(100% - 2rem);
+    padding: 2rem !important;
+  }
+}
