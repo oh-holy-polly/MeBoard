@@ -19,15 +19,15 @@ const CenterStar: React.FC = () => (
         cy={0}
         r={4}
         fill="none"
-        stroke="rgba(255, 230, 195, 0.6)"
-        strokeWidth={0.18}
+        stroke="rgba(255, 235, 200, 0.7)"
+        strokeWidth={0.08}
         initial={{ opacity: 0, scale: 0.4 }}
-        animate={{ opacity: [0, 0.55, 0], scale: [0.4, 4.5, 5] }}
+        animate={{ opacity: [0, 0.4, 0], scale: [0.4, 3.8, 4.4] }}
         transition={{
-          duration: 8,
+          duration: 9,
           repeat: Infinity,
           ease: 'easeOut',
-          delay: i * 2.7,
+          delay: i * 3,
         }}
         style={{ transformOrigin: 'center' }}
       />
