@@ -115,6 +115,12 @@ export default function Dashboard() {
     setIsTaskModalOpen(true);
   };
 
+  const openTaskNotes = (task: any) => {
+    setSelectedTask(task);
+    setTaskDescription(task.description || '');
+    setIsTaskDetailModalOpen(true);
+  };
+
   const formatTaskTime = (deadline?: string) => {
     if (!deadline) return 'Весь день';
     const date = new Date(deadline);
@@ -463,11 +469,18 @@ export default function Dashboard() {
                       {task.status === 'done' ? <CheckCircle2 color="var(--accent-primary)" /> : <Circle color="var(--text-secondary)" />}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <h4 style={{ 
-                        fontSize: '1.2rem', fontWeight: 400,
-                        textDecoration: task.status === 'done' ? 'line-through' : 'none',
-                        color: task.status === 'done' ? 'var(--text-secondary)' : 'var(--text-primary)'
-                      }} className="serif">{task.title}</h4>
+                      <h4 
+                        onClick={() => openTaskNotes(task)}
+                        style={{ 
+                          fontSize: '1.2rem', fontWeight: 400,
+                          textDecoration: task.status === 'done' ? 'line-through' : 'none',
+                          color: task.status === 'done' ? 'var(--text-secondary)' : 'var(--text-primary)',
+                          cursor: 'pointer'
+                        }} 
+                        className="serif"
+                      >
+                        {task.title}
+                      </h4>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                         {formatTaskTime(task.deadline)}
                       </p>
@@ -659,8 +672,18 @@ export default function Dashboard() {
                     <div key={task.id} className="todo-item" style={{ padding: '1rem 0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {task.status === 'done' ? <CheckCircle2 size={18} color="var(--accent-primary)" /> : <Circle size={18} color="var(--text-secondary)" />}
-                        <div>
-                          <span style={{ fontSize: '1.1rem', textDecoration: task.status === 'done' ? 'line-through' : 'none', opacity: task.status === 'done' ? 0.5 : 1 }}>{task.title}</span>
+                        <div style={{ flex: 1 }}>
+                          <span 
+                            onClick={() => openTaskNotes(task)}
+                            style={{ 
+                              fontSize: '1.1rem', 
+                              textDecoration: task.status === 'done' ? 'line-through' : 'none', 
+                              opacity: task.status === 'done' ? 0.5 : 1,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {task.title}
+                          </span>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{formatTaskTime(task.deadline)}</p>
                         </div>
                       </div>
