@@ -17,7 +17,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
-  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+    const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+  const [selectedHabitDays, setSelectedHabitDays] = useState<number[]>([]);
+  const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [taskDescription, setTaskDescription] = useState('');
+  const [goalStep, setGoalStep] = useState(1);
+  const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
@@ -129,7 +135,7 @@ export default function Dashboard() {
     try {
       await fetch('/api/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
         body: JSON.stringify({ title: newTaskTitle, goal_id: selectedGoalId || null, deadline }),
       });
       setNewTaskTitle(''); setSelectedGoalId(''); setNewTaskTime(''); setIsNewTaskAllDay(true); setIsTaskModalOpen(false);
@@ -144,7 +150,7 @@ export default function Dashboard() {
     try {
       await fetch('/api/goals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
         body: JSON.stringify({ title: newGoalTitle }),
       });
       setNewGoalTitle(''); setIsGoalModalOpen(false);
@@ -167,7 +173,7 @@ export default function Dashboard() {
     try {
       await fetch('/api/habits', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
         body: JSON.stringify({ name: newHabitName, ...schedulePayload }),
       });
       setNewHabitName(''); setNewHabitSchedule('daily'); setIsHabitModalOpen(false);
@@ -176,6 +182,23 @@ export default function Dashboard() {
   };
 
   // Удаление задачи
+    const updateTaskDescription = async () => {
+    if (!selectedTask) return;
+    try {
+      const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
+        body: JSON.stringify({ description: taskDescription }),
+      });
+      if (res.ok) {
+        setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: taskDescription } : t));
+        setIsTaskDetailModalOpen(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const deleteTask = async (id: string) => {
     if (!confirm('Удалить эту задачу?') || !userId) return;
     try {
@@ -201,7 +224,7 @@ export default function Dashboard() {
     try {
       await fetch(`/api/tasks/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
         body: JSON.stringify({ status: newStatus }),
       });
       fetchData();
@@ -581,12 +604,13 @@ export default function Dashboard() {
                       onClick={() => setSelectedDate(dateStr)}
                       className="calendar-day"
                       style={{ 
-                        background: isSelected ? 'var(--bg-color)' : 'white', 
+                        
                         padding: '1rem', 
                         position: 'relative',
                         transition: 'all 0.3s ease', 
                         cursor: 'pointer',
-                        boxShadow: hasHabits ? 'inset 0 0 20px rgba(184, 158, 103, 0.1)' : 'none',
+                        background: isSelected ? 'var(--bg-color)' : (hasHabits ? `linear-gradient(135deg, white 0%, rgba(184, 158, 103, ${Math.min(dayLogs.length * 0.15, 0.4)}) 100%)` : 'white'),
+                        boxShadow: hasHabits ? '0 4px 15px rgba(184, 158, 103, 0.05)' : 'none',
                         border: isSelected ? '1px solid var(--accent-gold)' : 'none',
                         zIndex: isSelected ? 10 : 1,
                         minHeight: '80px'
@@ -651,6 +675,88 @@ export default function Dashboard() {
 
       {activeTab === 'goals_all' && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                    {/* Визуализация Созвездие */}
+          <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem', textAlign: 'center', overflow: 'hidden', position: 'relative' }}>
+            <h3 className="serif" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Ваше созвездие недели</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '2rem' }}>Зажигайте звезды, выполняя привычки</p>
+            <div style={{ height: '200px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <svg width="100%" height="100%" viewBox="0 0 400 200" style={{ maxWidth: '600px' }}>
+                {(() => {
+                  const points = [...Array(7)].map((_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1) + i);
+                    const dateStr = d.toISOString().split('T')[0];
+                    const doneCount = habitLogs.filter(l => l.date === dateStr && l.completed).length;
+                    const x = 50 + i * 50;
+                    const y = 150 - (doneCount * 30);
+                    return { x, y, active: doneCount > 0, date: dateStr };
+                  });
+
+                  return (
+                    <>
+                      {/* Линии созвездия */}
+                      {points.map((p, i) => i < points.length - 1 && p.active && points[i+1].active && (
+                        <motion.line 
+                          key={`line-${i}`}
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          x1={p.x} y1={p.y} x2={points[i+1].x} y2={points[i+1].y} 
+                          stroke="var(--accent-gold)" strokeWidth="1" strokeDasharray="4 2" opacity="0.4"
+                        />
+                      ))}
+                      {/* Звезды */}
+                      {points.map((p, i) => (
+                        <g key={`star-${i}`}>
+                          <motion.circle 
+                            cx={p.x} cy={p.y} r={p.active ? 4 : 2} 
+                            fill={p.active ? 'var(--accent-gold)' : 'var(--border-elegant)'}
+                            animate={p.active ? { r: [4, 6, 4], opacity: [0.6, 1, 0.6] } : {}}
+                            transition={{ repeat: Infinity, duration: 2 + i }}
+                          />
+                          {p.active && (
+                            <circle cx={p.x} cy={p.y} r="10" fill="var(--accent-gold)" opacity="0.1" />
+                          )}
+                        </g>
+                      ))}
+                    </>
+                  );
+                })()}
+              </svg>
+            </div>
+          </div>
+          {/* Heatmap привычек */}
+          <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem' }}>
+            <h3 className="serif" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Трекер привычек (30 дней)</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {habits.map(habit => (
+                <div key={habit.id}>
+                  <p style={{ fontSize: '0.9rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>{habit.name}</p>
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {[...Array(30)].map((_, i) => {
+                      const d = new Date();
+                      d.setDate(d.getDate() - (29 - i));
+                      const dateStr = d.toISOString().split('T')[0];
+                      const isDone = habitLogs.some(l => l.habit_id === habit.id && l.date === dateStr && l.completed);
+                      return (
+                        <div 
+                          key={i} 
+                          title={dateStr}
+                          style={{ 
+                            width: '12px', 
+                            height: '12px', 
+                            borderRadius: '2px', 
+                            background: isDone ? 'var(--accent-primary)' : 'var(--border-elegant)',
+                            opacity: isDone ? 1 : 0.3
+                          }} 
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {habits.length === 0 && <p style={{ fontSize: '0.9rem', opacity: 0.7 }}>Добавьте привычки, чтобы увидеть прогресс</p>}
+            </div>
+          </div>
           {/* График активности */}
           <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem' }}>
             <h3 className="serif" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Ритм вашей продуктивности</h3>
@@ -660,8 +766,9 @@ export default function Dashboard() {
                   const d = new Date();
                   d.setDate(d.getDate() - (6 - i));
                   const dateStr = d.toISOString().split('T')[0];
-                  const count = tasks.filter(t => t.status === 'done' && t.updated_at?.startsWith(dateStr)).length;
-                  return { day: d.toLocaleDateString('ru', { weekday: 'short' }), count };
+                  const taskCount = tasks.filter(t => t.status === 'done' && t.updated_at?.startsWith(dateStr)).length;
+                  const habitCount = habitLogs.filter(l => l.completed && l.date === dateStr).length;
+                  return { day: d.toLocaleDateString('ru', { weekday: 'short' }), count: taskCount + habitCount };
                 });
                 const maxCount = Math.max(...last7Days.map(d => d.count), 1);
                 
@@ -716,6 +823,26 @@ export default function Dashboard() {
             ))}
           </div>
         </motion.div>
+      )}
+      {/* Модальное окно заметок задачи */}
+      {isTaskDetailModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsTaskDetailModalOpen(false)}>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
+            <h2 style={{ marginBottom: '1.5rem' }}>{selectedTask?.title}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Заметки к задаче</p>
+            <textarea 
+              className="elegant-input" 
+              style={{ fontSize: '1rem', minHeight: '150px', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border-elegant)' }}
+              value={taskDescription}
+              onChange={(e) => setTaskDescription(e.target.value)}
+              placeholder="Добавьте детали или подзадачи..."
+            />
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button className="btn-primary" onClick={updateTaskDescription}>Сохранить</button>
+              <button className="btn-primary" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-elegant)' }} onClick={() => setIsTaskDetailModalOpen(false)}>Закрыть</button>
+            </div>
+          </motion.div>
+        </div>
       )}
     </main>
   );
