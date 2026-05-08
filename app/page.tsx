@@ -192,7 +192,7 @@ export default function Dashboard() {
       });
       if (res.ok) {
         setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: taskDescription } : t));
-        closeTaskDetail();
+        setIsTaskDetailModalOpen(false);
       }
     } catch (err) {
       console.error(err);
