@@ -16,7 +16,7 @@ interface Meteor {
 
 /**
  * Падающие звёзды — изогнутая траектория (Bezier-кривая Q),
- * pathLength анимируется от 0 до 1 за 1.2 сек,
+ * pathLength анимируется от 0 до 1 за 1.6 сек,
  * появление — случайно раз в 15-25 сек.
  */
 const ShootingStars: React.FC = () => {
@@ -58,7 +58,7 @@ const ShootingStars: React.FC = () => {
       setActive((arr) => [...arr, m]);
       setTimeout(() => {
         setActive((arr) => arr.filter((x) => x.id !== m.id));
-      }, 1500);
+      }, 1700);
 
       const nextDelay = 15_000 + rand() * 10_000;
       timeout = setTimeout(spawn, nextDelay);
@@ -90,18 +90,18 @@ const ShootingStars: React.FC = () => {
             <motion.path
               key={m.id}
               d={path}
-              stroke="rgba(255, 240, 210, 1)"
-              strokeWidth={0.32}
+              stroke="rgba(255, 245, 220, 1)"
+              strokeWidth={0.16}
               fill="none"
               strokeLinecap="round"
               initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: [0, 1, 0.6, 0] }}
+              animate={{ pathLength: 1, opacity: [0, 0.95, 0.6, 0] }}
               transition={{
-                duration: 1.2,
-                ease: 'easeOut',
-                times: [0, 0.25, 0.7, 1],
+                duration: 1.6,
+                ease: [0.22, 0.61, 0.36, 1],
+                times: [0, 0.18, 0.55, 1],
               }}
-              style={{ filter: 'drop-shadow(0 0 1.6px rgba(255, 240, 200, 1))' }}
+              style={{ filter: 'drop-shadow(0 0 0.9px rgba(255, 245, 220, 1)) drop-shadow(0 0 2.4px rgba(255, 220, 180, 0.7))' }}
             />
           );
         })}
