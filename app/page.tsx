@@ -175,8 +175,10 @@ export default function Dashboard() {
 
     const deadline = isNewTaskAllDay
       ? newTaskDate
-      : `${newTaskDate}T${newTaskTime}:00`;
-
+      : (() => {
+          const local = new Date(`${newTaskDate}T${newTaskTime}:00`);
+          return local.toISOString();
+        })();
     try {
       await fetch('/api/tasks', {
         method: 'POST',
