@@ -162,8 +162,8 @@ export default function Dashboard() {
 
   const formatTaskTime = (deadline?: string) => {
     if (!deadline) return 'Весь день';
+    if (!deadline.includes('T')) return 'Весь день';
     const date = new Date(deadline);
-    if (date.getHours() === 0 && date.getMinutes() === 0) return 'Весь день';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
