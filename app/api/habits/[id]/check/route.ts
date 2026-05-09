@@ -30,6 +30,7 @@ export async function POST(
       habit_id: habitId,
       date: todayStr,
       completed: true
+      user_id: userId
     }]);
     return NextResponse.json({ success: true, action: 'checked' });
   }
