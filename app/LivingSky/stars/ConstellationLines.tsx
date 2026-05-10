@@ -8,49 +8,38 @@ interface Props {
   lines: ConstellationLine[];
 }
 
-/**
- * Линии созвездия — постоянные (не перерисовываются),
- * с лёгким мерцанием/свечением + бегущая яркая точка-импульс
- * по линии от A к B (как сигнал между звёздами).
- */
 const ConstellationLines: React.FC<Props> = ({ lines }) => (
   <>
-    {lines.map((ln, i) => (
-      <g key={ln.key}>
-        {/* Постоянная линия с пульсирующим свечением */}
-        <motion.line
-          x1={ln.x1}
-          y1={ln.y1}
-          x2={ln.x2}
-          y2={ln.y2}
-          stroke="rgba(255, 230, 195, 0.85)"
-          strokeWidth={0.28}
-          strokeLinecap="round"
-          animate={{ opacity: [0.6, 0.95, 0.6] }}
-          transition={{ duration: 4 + i * 0.4, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ filter: 'drop-shadow(0 0 1.2px rgba(255, 230, 195, 0.9))' }}
-        />
+    <defs>
+      {lines.map((ln) => (
+        <linearGradient
+          key={`grad-${ln.key}`}
+          id={`grad-${ln.key}`}
+          x1={ln.x1} y1={ln.y1}
+          x2={ln.x2} y2={ln.y2}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%"   stopColor="#ffdca0" stopOpacity={0} />
+          <stop offset="25%"  stopColor="#ffdca0" stopOpacity={0.8} />
+          <stop offset="50%"  stopColor="#ffe8b0" stopOpacity={1} />
+          <stop offset="75%"  stopColor="#ffdca0" stopOpacity={0.8} />
+          <stop offset="100%" stopColor="#ffdca0" stopOpacity={0} />
+        </linearGradient>
+      ))}
+    </defs>
 
-        {/* Бегущая яркая точка-импульс */}
-        <motion.circle
-          r={0.55}
-          fill="#ffffff"
-          animate={{
-            cx: [ln.x1, ln.x2],
-            cy: [ln.y1, ln.y2],
-            opacity: [0, 1, 1, 0],
-          }}
-          transition={{
-            duration: 2.4,
-            times: [0, 0.15, 0.85, 1],
-            repeat: Infinity,
-            repeatDelay: 4 + i * 0.7,
-            delay: i * 1.3,
-            ease: 'easeInOut',
-          }}
-          style={{ filter: 'drop-shadow(0 0 1.8px rgba(255, 240, 210, 1))' }}
-        />
-      </g>
+    {lines.map((ln, i) => (
+      <motion.line
+        key={ln.key}
+        x1={ln.x1} y1={ln.y1}
+        x2={ln.x2} y2={ln.y2}
+        stroke={`url(#grad-${ln.key})`}
+        strokeWidth={0.45}
+        strokeLinecap="round"
+        animate={{ opacity: [0.7, 1, 0.7] }}
+        transition={{ duration: 4 + i * 0.4, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ filter: 'drop-shadow(0 0 1.5px rgba(255, 220, 150, 0.8))' }}
+      />
     ))}
   </>
 );
