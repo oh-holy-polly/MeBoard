@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [taskEditDate, setTaskEditDate] = useState('');
   const [taskEditTime, setTaskEditTime] = useState('');
   const [taskEditAllDay, setTaskEditAllDay] = useState(true);
+  const [isTaskEditModalOpen, setIsTaskEditModalOpen] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [goalStep, setGoalStep] = useState(1);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
   const [goalTaskInputs, setGoalTaskInputs] = useState<string[]>(['']);
@@ -158,21 +160,26 @@ export default function Dashboard() {
     setIsTaskModalOpen(true);
   };
 
-  const openTaskNotes = (task: any) => {
+  const openTaskEdit = (task: any) => {
     setSelectedTask(task);
-    setTaskDescription(task.description || '');
-    if (task.deadline && task.deadline.includes(' ') || task.deadline?.includes('T')) {
+    if (task.deadline && (task.deadline.includes(' ') || task.deadline.includes('T'))) {
       const date = new Date(task.deadline);
       const isAllDay = date.getUTCHours() === 0 && date.getUTCMinutes() === 0;
       setTaskEditAllDay(isAllDay);
-      const localDate = task.deadline.split('T')[0] || task.deadline.split(' ')[0];
-      setTaskEditDate(localDate);
+      setTaskEditDate(task.deadline.split('T')[0] || task.deadline.split(' ')[0]);
       setTaskEditTime(isAllDay ? '' : date.toTimeString().slice(0, 5));
     } else {
       setTaskEditAllDay(true);
       setTaskEditDate(task.deadline || new Date().toISOString().split('T')[0]);
       setTaskEditTime('');
     }
+    setOpenDropdownId(null);
+    setIsTaskEditModalOpen(true);
+  };
+
+  const openTaskNotes = (task: any) => {
+    setSelectedTask(task);
+    setTaskDescription(task.description || '');
     setIsTaskDetailModalOpen(true);
   };
 
@@ -403,6 +410,7 @@ export default function Dashboard() {
   const todayTasks = tasks.filter(t => t.deadline?.startsWith(todayStr));
 
   return (
+    <main className="dashboard-container" onClick={() => setOpenDropdownId(null)}>
     <main className="dashboard-container">
       {/* Модальное окно: ЗАДАЧА */}
       {isTaskModalOpen && (
@@ -614,17 +622,44 @@ export default function Dashboard() {
                         {formatTaskTime(task.deadline)}
                       </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                      <ArrowRight size={18} color="var(--accent-gold)" style={{ opacity: 0.5 }} />
-                      <MoreHorizontal 
+                    <div style={{ position: 'relative' }}>
+                      <MoreHorizontal
                         size={18} 
                         color="var(--text-secondary)" 
                         style={{ cursor: 'pointer', opacity: 0.3 }}
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
-                          deleteTask(task.id);
+                          setOpenDropdownId(openDropdownId === task.id ? null : task.id);
                         }}
                       />
+                      {openDropdownId === task.id && (
+                        <div
+                          style={{
+                            position: 'absolute', right: 0, top: '24px', zIndex: 100,
+                            background: 'var(--bg-color)', border: '1px solid var(--border-elegant)',
+                            borderRadius: '12px', padding: '0.5rem', minWidth: '140px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div
+                            onClick={() => openTaskEdit(task)}
+                            style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.9rem', borderRadius: '8px' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-elegant)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            ✏️ Редактировать
+                          </div>
+                          <div
+                            onClick={() => { setOpenDropdownId(null); deleteTask(task.id); }}
+                            style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.9rem', borderRadius: '8px', color: '#e57373' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-elegant)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            🗑️ Удалить
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 ))
@@ -968,31 +1003,8 @@ export default function Dashboard() {
       {isTaskDetailModalOpen && (
         <div className="modal-overlay" onClick={() => setIsTaskDetailModalOpen(false)}>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
-            <h2 className="serif" style={{ marginBottom: '1.5rem' }}>{selectedTask?.title}</h2>
-
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Дата</p>
-            <input
-              type="date"
-              value={taskEditDate}
-              onChange={e => setTaskEditDate(e.target.value)}
-              className="elegant-input compact-input"
-            />
-
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-              <button type="button" onClick={() => setTaskEditAllDay(true)} className={taskEditAllDay ? 'btn-primary' : 'btn-secondary'}>Весь день</button>
-              <button type="button" onClick={() => setTaskEditAllDay(false)} className={!taskEditAllDay ? 'btn-primary' : 'btn-secondary'}>По времени</button>
-            </div>
-
-            {!taskEditAllDay && (
-              <input
-                type="time"
-                value={taskEditTime}
-                onChange={e => setTaskEditTime(e.target.value)}
-                className="elegant-input compact-input"
-              />
-            )}
-
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Заметки</p>
+            <h2 style={{ marginBottom: '1.5rem' }}>{selectedTask?.title}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Заметки к задаче</p>
             <textarea
               className="elegant-input"
               style={{ fontSize: '1rem', minHeight: '150px', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border-elegant)' }}
@@ -1000,10 +1012,45 @@ export default function Dashboard() {
               onChange={e => setTaskDescription(e.target.value)}
               placeholder="Добавьте детали или подзадачи..."
             />
-
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button className="btn-primary" onClick={updateTaskDescription}>Сохранить</button>
               <button className="btn-primary" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-elegant)' }} onClick={() => setIsTaskDetailModalOpen(false)}>Закрыть</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      {/* Модальное окно редактирования задачи */}
+      {isTaskEditModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsTaskEditModalOpen(false)}>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
+            <h2 className="serif" style={{ marginBottom: '1.5rem' }}>Редактировать задачу</h2>
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Дата</p>
+            <input type="date" value={taskEditDate} onChange={e => setTaskEditDate(e.target.value)} className="elegant-input compact-input" />
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <button type="button" onClick={() => setTaskEditAllDay(true)} className={taskEditAllDay ? 'btn-primary' : 'btn-secondary'}>Весь день</button>
+              <button type="button" onClick={() => setTaskEditAllDay(false)} className={!taskEditAllDay ? 'btn-primary' : 'btn-secondary'}>По времени</button>
+            </div>
+
+            {!taskEditAllDay && (
+              <input type="time" value={taskEditTime} onChange={e => setTaskEditTime(e.target.value)} className="elegant-input compact-input" />
+            )}
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button className="btn-primary" onClick={async () => {
+                const deadline = taskEditAllDay
+                  ? taskEditDate
+                  : new Date(`${taskEditDate}T${taskEditTime}:00`).toISOString();
+                await fetch(`/api/tasks/${selectedTask.id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
+                  body: JSON.stringify({ deadline }),
+                });
+                setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, deadline } : t));
+                setIsTaskEditModalOpen(false);
+              }}>Сохранить</button>
+              <button className="btn-primary" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-elegant)' }} onClick={() => setIsTaskEditModalOpen(false)}>Закрыть</button>
             </div>
           </motion.div>
         </div>
