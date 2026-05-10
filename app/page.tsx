@@ -163,8 +163,10 @@ export default function Dashboard() {
 
   const formatTaskTime = (deadline?: string) => {
     if (!deadline) return 'Весь день';
-    if (!deadline.includes('T')) return 'Весь день';
+    const hasTime = deadline.includes('T') || deadline.includes(' ');
+    if (!hasTime) return 'Весь день';
     const date = new Date(deadline);
+    if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0) return 'Весь день';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
