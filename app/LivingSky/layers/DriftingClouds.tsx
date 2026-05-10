@@ -4,9 +4,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const CLOUDS = [
-  { top: '12%', height: '22%', color: 'rgba(244, 114, 182, 0.42)', duration: 38, delay: 0 },
-  { top: '38%', height: '20%', color: 'rgba(255, 200, 180, 0.38)', duration: 52, delay: -18 },
-  { top: '58%', height: '24%', color: 'rgba(255, 220, 195, 0.36)', duration: 30, delay: -22 },
+  { top: '8%',  width: '55%', height: '18%', color: 'rgba(255, 220, 230, 0.55)', duration: 38, delay: 0 },
+  { top: '25%', width: '70%', height: '22%', color: 'rgba(220, 200, 255, 0.45)', duration: 52, delay: -18 },
+  { top: '45%', width: '60%', height: '20%', color: 'rgba(255, 210, 190, 0.50)', duration: 44, delay: -10 },
+  { top: '62%', width: '75%', height: '24%', color: 'rgba(255, 225, 200, 0.48)', duration: 30, delay: -22 },
+  { top: '15%', width: '45%', height: '16%', color: 'rgba(200, 190, 255, 0.40)', duration: 60, delay: -35 },
 ];
 
 const DriftingClouds: React.FC = () => (
@@ -15,8 +17,8 @@ const DriftingClouds: React.FC = () => (
       <motion.div
         key={i}
         aria-hidden
-        initial={{ x: '-50%' }}
-        animate={{ x: '180%' }}
+        initial={{ x: '-70%' }}
+        animate={{ x: '120%' }}
         transition={{
           duration: c.duration,
           delay: c.delay,
@@ -28,11 +30,10 @@ const DriftingClouds: React.FC = () => (
           position: 'absolute',
           left: 0,
           top: c.top,
-          width: '60%',
+          width: c.width,
           height: c.height,
-          background: `radial-gradient(ellipse 50% 100% at 50% 50%, ${c.color} 0%, transparent 70%)`,
-          filter: 'blur(24px)',
-          mixBlendMode: 'screen',
+          background: `radial-gradient(ellipse 60% 100% at 50% 50%, ${c.color} 0%, transparent 75%)`,
+          filter: 'blur(14px)',
           zIndex: 5,
           pointerEvents: 'none',
           willChange: 'transform',
