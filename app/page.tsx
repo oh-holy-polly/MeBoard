@@ -23,6 +23,9 @@ export default function Dashboard() {
   const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [taskDescription, setTaskDescription] = useState('');
+  const [taskEditDate, setTaskEditDate] = useState('');
+  const [taskEditTime, setTaskEditTime] = useState('');
+  const [taskEditAllDay, setTaskEditAllDay] = useState(true);
   const [goalStep, setGoalStep] = useState(1);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
   const [goalTaskInputs, setGoalTaskInputs] = useState<string[]>(['']);
@@ -158,6 +161,18 @@ export default function Dashboard() {
   const openTaskNotes = (task: any) => {
     setSelectedTask(task);
     setTaskDescription(task.description || '');
+    if (task.deadline && task.deadline.includes(' ') || task.deadline?.includes('T')) {
+      const date = new Date(task.deadline);
+      const isAllDay = date.getUTCHours() === 0 && date.getUTCMinutes() === 0;
+      setTaskEditAllDay(isAllDay);
+      const localDate = task.deadline.split('T')[0] || task.deadline.split(' ')[0];
+      setTaskEditDate(localDate);
+      setTaskEditTime(isAllDay ? '' : date.toTimeString().slice(0, 5));
+    } else {
+      setTaskEditAllDay(true);
+      setTaskEditDate(task.deadline || new Date().toISOString().split('T')[0]);
+      setTaskEditTime('');
+    }
     setIsTaskDetailModalOpen(true);
   };
 
@@ -253,21 +268,25 @@ export default function Dashboard() {
 
   // Удаление задачи
     const updateTaskDescription = async () => {
-    if (!selectedTask) return;
-    try {
-      const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
-        body: JSON.stringify({ description: taskDescription }),
-      });
-      if (res.ok) {
-        setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: taskDescription } : t));
-        setIsTaskDetailModalOpen(false);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+      if (!selectedTask) return;
+      const deadline = taskEditAllDay
+        ? taskEditDate
+        : (() => {
+            const local = new Date(`${taskEditDate}T${taskEditTime}:00`);
+            return local.toISOString();
+          })();
+      try {
+        const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
+          body: JSON.stringify({ description: taskDescription, deadline }),
+        });
+        if (res.ok) {
+          setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: taskDescription, deadline } : t));
+          setIsTaskDetailModalOpen(false);
+        }
+      } catch (err) { console.error(err); }
+    };
 
   const deleteTask = async (id: string) => {
     if (!confirm('Удалить эту задачу?') || !userId) return;
@@ -949,15 +968,39 @@ export default function Dashboard() {
       {isTaskDetailModalOpen && (
         <div className="modal-overlay" onClick={() => setIsTaskDetailModalOpen(false)}>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginBottom: '1.5rem' }}>{selectedTask?.title}</h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Заметки к задаче</p>
-            <textarea 
-              className="elegant-input" 
+            <h2 className="serif" style={{ marginBottom: '1.5rem' }}>{selectedTask?.title}</h2>
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Дата</p>
+            <input
+              type="date"
+              value={taskEditDate}
+              onChange={e => setTaskEditDate(e.target.value)}
+              className="elegant-input compact-input"
+            />
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <button type="button" onClick={() => setTaskEditAllDay(true)} className={taskEditAllDay ? 'btn-primary' : 'btn-secondary'}>Весь день</button>
+              <button type="button" onClick={() => setTaskEditAllDay(false)} className={!taskEditAllDay ? 'btn-primary' : 'btn-secondary'}>По времени</button>
+            </div>
+
+            {!taskEditAllDay && (
+              <input
+                type="time"
+                value={taskEditTime}
+                onChange={e => setTaskEditTime(e.target.value)}
+                className="elegant-input compact-input"
+              />
+            )}
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Заметки</p>
+            <textarea
+              className="elegant-input"
               style={{ fontSize: '1rem', minHeight: '150px', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border-elegant)' }}
               value={taskDescription}
-              onChange={(e) => setTaskDescription(e.target.value)}
+              onChange={e => setTaskDescription(e.target.value)}
               placeholder="Добавьте детали или подзадачи..."
             />
+
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button className="btn-primary" onClick={updateTaskDescription}>Сохранить</button>
               <button className="btn-primary" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-elegant)' }} onClick={() => setIsTaskDetailModalOpen(false)}>Закрыть</button>
