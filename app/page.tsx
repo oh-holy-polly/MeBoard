@@ -732,23 +732,21 @@ export default function Dashboard() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="glass-card" style={{ padding: '4rem', marginBottom: '3rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                <ArrowRight 
-                  size={24} 
-                  color="var(--accent-gold)" 
-                  style={{ transform: 'rotate(180deg)', cursor: 'pointer', opacity: 0.6 }} 
-                  onClick={prevMonth}
-                />
-                <h2 className="serif" style={{ fontSize: '2.5rem', width: '250px', textAlign: 'center' }}>
-                  {currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' })}
-                </h2>
-                <ArrowRight 
-                  size={24} 
-                  color="var(--accent-gold)" 
-                  style={{ cursor: 'pointer', opacity: 0.6 }} 
-                  onClick={nextMonth}
-                />
-              </div>
+              <ArrowRight 
+                size={24} 
+                color="var(--accent-gold)" 
+                style={{ transform: 'rotate(180deg)', cursor: 'pointer', opacity: 0.6 }} 
+                onClick={prevMonth}
+              />
+              <h2 className="serif" style={{ fontSize: '2.5rem', textAlign: 'center', flex: 1 }}>
+                {currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' })}
+              </h2>
+              <ArrowRight 
+                size={24} 
+                color="var(--accent-gold)" 
+                style={{ cursor: 'pointer', opacity: 0.6 }} 
+                onClick={nextMonth}
+              />
             </div>
             
             <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: 'var(--border-elegant)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-elegant)' }}>
