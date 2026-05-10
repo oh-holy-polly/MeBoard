@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [taskDescription, setTaskDescription] = useState('');
   const [goalStep, setGoalStep] = useState(1);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
+  const [goalTaskInputs, setGoalTaskInputs] = useState<string[]>(['']);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
@@ -195,15 +196,35 @@ export default function Dashboard() {
     e.preventDefault();
     if (!newGoalTitle.trim() || !userId) return;
     try {
-      await fetch('/api/goals', {
+      const res = await fetch('/api/goals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
         body: JSON.stringify({ title: newGoalTitle }),
       });
-      setNewGoalTitle(''); setIsGoalModalOpen(false);
-      fetchData();
+      const goal = await res.json();
+      setCreatedGoalId(goal.id);
+      setGoalStep(2);
     } catch (err) { console.error(err); }
   };
+
+  const finishGoalCreation = async () => {
+    const filledTasks = goalTaskInputs.filter(t => t.trim());
+    if (filledTasks.length > 0 && createdGoalId && userId) {
+      await Promise.all(filledTasks.map(title =>
+        fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+          body: JSON.stringify({ title, goal_id: createdGoalId, deadline: new Date().toISOString().split('T')[0] }),
+        })
+      ));
+    }
+    setNewGoalTitle('');
+    setGoalTaskInputs(['']);
+    setGoalStep(1);
+    setCreatedGoalId(null);
+    setIsGoalModalOpen(false);
+    fetchData();
+};
 
   // Создание привычки
   const addHabit = async (e: React.FormEvent) => {
@@ -392,16 +413,59 @@ export default function Dashboard() {
 
       {/* Модальное окно: ЦЕЛЬ */}
       {isGoalModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsGoalModalOpen(false)}>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
-            <h2 className="serif" style={{ marginBottom: '2rem' }}>Новая цель</h2>
-            <form onSubmit={addGoal}>
-              <input autoFocus type="text" placeholder="Ваша глобальная цель?" value={newGoalTitle} onChange={e => setNewGoalTitle(e.target.value)} className="elegant-input" />
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button type="button" onClick={() => setIsGoalModalOpen(false)} className="btn-secondary">Отмена</button>
-                <button type="submit" className="btn-primary">Создать цель</button>
-              </div>
-            </form>
+        <div className="modal-overlay" onClick={() => { setIsGoalModalOpen(false); setGoalStep(1); setGoalTaskInputs(['']); }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, scale: 1 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
+      
+            {goalStep === 1 && (
+              <>
+                <p style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Шаг 1 из 2</p>
+                <h2 className="serif" style={{ marginBottom: '2rem' }}>Новая цель</h2>
+                <form onSubmit={addGoal}>
+                  <input autoFocus type="text" placeholder="Ваша глобальная цель?" value={newGoalTitle} onChange={e => setNewGoalTitle(e.target.value)} className="elegant-input" />
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button type="button" onClick={() => { setIsGoalModalOpen(false); setGoalStep(1); }} className="btn-secondary">Отмена</button>
+                    <button type="submit" className="btn-primary">Далее →</button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {goalStep === 2 && (
+              <>
+                <p style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Шаг 2 из 2</p>
+                <h2 className="serif" style={{ marginBottom: '0.5rem' }}>Задачи к цели</h2>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '2rem' }}>Добавьте первые шаги или пропустите этот шаг.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                  {goalTaskInputs.map((val, i) => (
+                    <input
+                      key={i}
+                      type="text"
+                      placeholder={`Задача ${i + 1}`}
+                      value={val}
+                      onChange={e => {
+                        const updated = [...goalTaskInputs];
+                        updated[i] = e.target.value;
+                        setGoalTaskInputs(updated);
+                      }}
+                      className="elegant-input"
+                      style={{ marginBottom: 0 }}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setGoalTaskInputs(prev => [...prev, ''])}
+                    style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--accent-gold)', cursor: 'pointer', fontSize: '0.9rem', padding: 0 }}
+                  >
+                    + Добавить ещё
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button type="button" onClick={finishGoalCreation} className="btn-secondary">Пропустить</button>
+                  <button type="button" onClick={finishGoalCreation} className="btn-primary">Готово</button>
+                </div>
+              </>
+            )}
+
           </motion.div>
         </div>
       )}
