@@ -357,6 +357,9 @@ export default function Dashboard() {
     { label: 'Общий прогресс', value: goals.length > 0 ? `${Math.round(goals.reduce((acc, g) => acc + g.progress, 0) / goals.length)}%` : '0%', icon: Target, color: 'var(--accent-primary)' },
   ];
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayTasks = tasks.filter(t => t.deadline?.startsWith(todayStr));
+
   return (
     <main className="dashboard-container">
       {/* Модальное окно: ЗАДАЧА */}
@@ -498,10 +501,10 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {tasks.length === 0 ? (
+              {todayTasks.length === 0 ? (
                 <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '3rem' }}>Задач пока нет. Отдохните!</p>
               ) : (
-                tasks.map((task, i) => (
+                todayTasks.map((task, i) => (
                   <motion.div key={task.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 + 0.5 }} className="todo-item">
                     <div 
                       onClick={() => toggleTask(task.id, task.status)}
