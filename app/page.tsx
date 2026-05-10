@@ -847,8 +847,47 @@ export default function Dashboard() {
                           </span>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{formatTaskTime(task.deadline)}</p>
                         </div>
-                      </div>
+                        <div style={{ position: 'relative' }}>
+                      <MoreHorizontal
+                        size={18} 
+                        color="var(--text-secondary)" 
+                        style={{ cursor: 'pointer', opacity: 0.3 }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setOpenDropdownId(openDropdownId === task.id ? null : task.id);
+                        }}
+                      />
+                      {openDropdownId === task.id && (
+                        <div
+                          style={{
+                            position: 'absolute', right: 0, top: '24px', zIndex: 100,
+                            background: 'var(--bg-color)', border: '1px solid var(--border-elegant)',
+                            borderRadius: '12px', padding: '0.5rem', minWidth: '140px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div
+                            onClick={() => openTaskEdit(task)}
+                            style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.9rem', borderRadius: '8px' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-elegant)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            ✏️ Редактировать
+                          </div>
+                          <div
+                            onClick={() => { setOpenDropdownId(null); deleteTask(task.id); }}
+                            style={{ padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.9rem', borderRadius: '8px', color: '#e57373' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-elegant)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            🗑️ Удалить
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  </div>
+                </div>
                   ))
                 )}
               </div>
