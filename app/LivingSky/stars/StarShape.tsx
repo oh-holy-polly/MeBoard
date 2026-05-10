@@ -15,9 +15,9 @@ const StarShape: React.FC<Props> = ({ size: s, color = '#fff5dc' }) => (
     <path d={`M0,-${s*2.5} L${s*0.38},0 L0,${s*2.5} L-${s*0.38},0 Z`} fill={color} opacity={0.97} />
     <path d={`M-${s*2.5},0 L0,-${s*0.38} L${s*2.5},0 L0,${s*0.38} Z`} fill={color} opacity={0.97} />
 
-    {/* 4 диагональных луча — острые, длина ~82% от главных */}
-    <path d={`M-${s*2.05},-${s*2.05} L${s*0.18},0 L${s*2.05},${s*2.05} L-${s*0.18},0 Z`} fill={color} opacity={0.82} />
-    <path d={`M${s*2.05},-${s*2.05} L-${s*0.18},0 L-${s*2.05},${s*2.05} L${s*0.18},0 Z`} fill={color} opacity={0.82} />
+    {/* 4 диагональных луча — короче и чуть пухлее */}
+    <path d={`M-${s*1.7},-${s*1.7} L${s*0.23},0 L${s*1.7},${s*1.7} L-${s*0.23},0 Z`} fill={color} opacity={0.82} />
+    <path d={`M${s*1.7},-${s*1.7} L-${s*0.23},0 L-${s*1.7},${s*1.7} L${s*0.23},0 Z`} fill={color} opacity={0.82} />
 
     {/* Яркое белое ядро */}
     <circle r={s * 0.3} fill="#ffffff" />
