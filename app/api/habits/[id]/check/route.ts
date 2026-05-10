@@ -29,7 +29,7 @@ export async function POST(
     await supabase.from('habit_logs').insert([{
       habit_id: habitId,
       date: todayStr,
-      completed: true
+      completed: true,
       user_id: userId
     }]);
     return NextResponse.json({ success: true, action: 'checked' });
