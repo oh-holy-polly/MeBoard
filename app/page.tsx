@@ -411,7 +411,6 @@ export default function Dashboard() {
 
   return (
     <main className="dashboard-container" onClick={() => setOpenDropdownId(null)}>
-    <main className="dashboard-container">
       {/* Модальное окно: ЗАДАЧА */}
       {isTaskModalOpen && (
         <div className="modal-overlay" onClick={() => setIsTaskModalOpen(false)}>
