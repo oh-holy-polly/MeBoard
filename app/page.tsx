@@ -204,7 +204,9 @@ export default function Dashboard() {
   const openTaskNotes = (task: any) => {
     setSelectedTask(task);
     setTaskDescription(task.description || '');
-    setIsEditingNotes(true);
+    // Если описание есть — открываем в режиме просмотра (ссылки кликабельны)
+    // Если описания нет — открываем сразу в режиме редактирования
+    setIsEditingNotes(!task.description);
     setIsTaskDetailModalOpen(true);
   };
 
