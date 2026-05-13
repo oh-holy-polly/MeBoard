@@ -1078,7 +1078,6 @@ export default function Dashboard() {
                 style={{ fontSize: '1rem', minHeight: '150px', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border-elegant)', width: '100%', resize: 'none' }}
                 value={taskDescription}
                 onChange={e => setTaskDescription(e.target.value)}
-                onBlur={() => setIsEditingNotes(false)}
                 placeholder="Добавьте детали или подзадачи..."
               />
             ) : (
