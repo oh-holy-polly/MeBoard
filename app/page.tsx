@@ -300,27 +300,23 @@ export default function Dashboard() {
     } catch (err) { console.error(err); }
   };
 
-  // Удаление задачи
+  // Сохранение заметки к задаче
     const updateTaskDescription = async () => {
-      if (!selectedTask) return;
-      const deadline = taskEditAllDay
-        ? taskEditDate
-        : (() => {
-            const local = new Date(`${taskEditDate}T${taskEditTime}:00`);
-            return local.toISOString();
-          })();
+      if (!selectedTask || !userId) return;
       try {
         const res = await fetch(`/api/tasks/${selectedTask.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
-          body: JSON.stringify({ description: taskDescription, deadline }),
+          headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+          body: JSON.stringify({ description: taskDescription }),
         });
         if (res.ok) {
-          setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: taskDescription, deadline } : t));
+          setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: taskDescription } : t));
+          setIsEditingNotes(false);
           setIsTaskDetailModalOpen(false);
         }
       } catch (err) { console.error(err); }
     };
+
 
   const deleteTask = async (id: string) => {
     if (!confirm('Удалить эту задачу?') || !userId) return;
