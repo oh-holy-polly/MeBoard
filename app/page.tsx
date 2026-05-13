@@ -41,6 +41,30 @@ export default function Dashboard() {
   const [newHabitSchedule, setNewHabitSchedule] = useState('daily');
   const [selectedGoalId, setSelectedGoalId] = useState('');
   const [loginId, setLoginId] = useState('');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+
+  const linkify = (text: string) => {
+    if (!text) return text;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a 
+            key={i} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-link"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
 
   // Проверка авторизации при загрузке
   useEffect(() => {
@@ -180,6 +204,7 @@ export default function Dashboard() {
   const openTaskNotes = (task: any) => {
     setSelectedTask(task);
     setTaskDescription(task.description || '');
+    setIsEditingNotes(true);
     setIsTaskDetailModalOpen(true);
   };
 
@@ -1044,13 +1069,34 @@ export default function Dashboard() {
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
             <h2 style={{ marginBottom: '1.5rem' }}>{selectedTask?.title}</h2>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Заметки к задаче</p>
-            <textarea
-              className="elegant-input"
-              style={{ fontSize: '1rem', minHeight: '150px', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border-elegant)' }}
-              value={taskDescription}
-              onChange={e => setTaskDescription(e.target.value)}
-              placeholder="Добавьте детали или подзадачи..."
-            />
+            {isEditingNotes ? (
+              <textarea
+                autoFocus
+                className="elegant-input"
+                style={{ fontSize: '1rem', minHeight: '150px', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border-elegant)', width: '100%', resize: 'none' }}
+                value={taskDescription}
+                onChange={e => setTaskDescription(e.target.value)}
+                onBlur={() => setIsEditingNotes(false)}
+                placeholder="Добавьте детали или подзадачи..."
+              />
+            ) : (
+              <div 
+                onClick={() => setIsEditingNotes(true)}
+                className="elegant-input"
+                style={{ 
+                  fontSize: '1rem', 
+                  minHeight: '150px', 
+                  borderRadius: '12px', 
+                  padding: '1rem', 
+                  border: '1px solid var(--border-elegant)', 
+                  whiteSpace: 'pre-wrap',
+                  cursor: 'text',
+                  overflowY: 'auto'
+                }}
+              >
+                {taskDescription ? linkify(taskDescription) : <span style={{ opacity: 0.5 }}>Добавьте детали или подзадачи...</span>}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button className="btn-primary" onClick={updateTaskDescription}>Сохранить</button>
               <button className="btn-primary" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-elegant)' }} onClick={() => setIsTaskDetailModalOpen(false)}>Закрыть</button>

@@ -306,3 +306,15 @@ h1, h2, h3, .serif {
     padding: 2rem !important;
   }
 }
+
+.text-link {
+  color: var(--accent-gold);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: opacity 0.2s ease;
+}
+
+.text-link:hover {
+  opacity: 0.7;
+}
+
