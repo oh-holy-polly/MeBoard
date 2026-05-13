@@ -1092,6 +1092,7 @@ export default function Dashboard() {
                   padding: '1rem', 
                   border: '1px solid var(--border-elegant)', 
                   whiteSpace: 'pre-wrap',
+                  overflowWrap: 'break-word',
                   cursor: 'text',
                   overflowY: 'auto'
                 }}
