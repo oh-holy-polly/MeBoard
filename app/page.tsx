@@ -407,7 +407,10 @@ export default function Dashboard() {
   ];
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayTasks = tasks.filter(t => t.deadline?.startsWith(todayStr));
+  const todayTasks = tasks.filter(t => 
+    t.deadline?.startsWith(todayStr) || 
+    (t.deadline && t.deadline < todayStr && t.status !== 'done')
+  );
 
   return (
     <main className="dashboard-container" onClick={() => setOpenDropdownId(null)}>
