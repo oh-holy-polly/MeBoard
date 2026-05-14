@@ -11,12 +11,26 @@ export async function PATCH(
   if (!userId) return NextResponse.json({ error: 'Missing user ID' }, { status: 401 });
 
   const body = await request.json();
-  const { data, error } = await supabase
+  
+  // Попытка обновления с updated_at (для персистентности видимости завершенных задач)
+  let { data, error } = await supabase
     .from('tasks')
-    .update(body)
+    .update({ ...body, updated_at: new Date().toISOString() })
     .eq('id', params.id)
     .eq('user_id', userId)
     .select();
+
+  // Если колонки updated_at нет, пробуем обычное обновление
+  if (error && error.message?.includes('column "updated_at"')) {
+    const retry = await supabase
+      .from('tasks')
+      .update(body)
+      .eq('id', params.id)
+      .eq('user_id', userId)
+      .select();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data || data.length === 0) return NextResponse.json({ error: 'Task not found' }, { status: 404 });

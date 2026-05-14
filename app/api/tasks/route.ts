@@ -28,20 +28,31 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { data, error } = await supabase
+  const payload = {
+    title: body.title,
+    description: body.description,
+    deadline: body.deadline,
+    priority: body.priority || 'medium',
+    status: body.status || 'todo',
+    user_id: userId,
+    goal_id: body.goal_id,
+  };
+
+  // Пробуем вставить с updated_at
+  let { data, error } = await supabase
     .from('tasks')
-    .insert([
-        {
-          title: body.title,
-          description: body.description,
-          deadline: body.deadline,
-          priority: body.priority || 'medium',
-          status: body.status || 'todo',
-          user_id: userId,
-          goal_id: body.goal_id,
-        },
-    ])
+    .insert([{ ...payload, updated_at: new Date().toISOString() }])
     .select();
+
+  // Если колонки updated_at нет, вставляем без неё
+  if (error && error.message?.includes('column "updated_at"')) {
+    const retry = await supabase
+      .from('tasks')
+      .insert([payload])
+      .select();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data[0], { status: 201 });
