@@ -339,7 +339,8 @@ export default function Dashboard() {
   const toggleTask = async (id: string, currentStatus: string) => {
     if (!userId) return;
     const newStatus = currentStatus === 'done' ? 'todo' : 'done';
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+    const now = new Date().toISOString();
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus, updated_at: now } : t));
     try {
       await fetch(`/api/tasks/${id}`, {
         method: 'PATCH',
@@ -432,7 +433,7 @@ export default function Dashboard() {
   const todayStr = new Date().toISOString().split('T')[0];
   const todayTasks = tasks.filter(t => 
     t.deadline?.startsWith(todayStr) || 
-    (t.deadline && t.deadline < todayStr && t.status !== 'done')
+    (t.deadline && t.deadline < todayStr && (t.status !== 'done' || t.updated_at?.startsWith(todayStr)))
   );
 
   return (

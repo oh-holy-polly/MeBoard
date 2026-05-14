@@ -11,9 +11,10 @@ export async function PATCH(
   if (!userId) return NextResponse.json({ error: 'Missing user ID' }, { status: 401 });
 
   const body = await request.json();
+  const updateData = { ...body, updated_at: new Date().toISOString() };
   const { data, error } = await supabase
     .from('tasks')
-    .update(body)
+    .update(updateData)
     .eq('id', params.id)
     .eq('user_id', userId)
     .select();

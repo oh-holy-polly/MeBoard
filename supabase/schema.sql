@@ -11,7 +11,8 @@ CREATE TABLE tasks (
     deadline TIMESTAMP WITH TIME ZONE,
     priority task_priority DEFAULT 'medium',
     status task_status DEFAULT 'todo',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Таблица привычек

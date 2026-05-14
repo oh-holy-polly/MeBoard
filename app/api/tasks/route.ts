@@ -31,15 +31,16 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from('tasks')
     .insert([
-      {
-        title: body.title,
-        description: body.description,
-        deadline: body.deadline,
-        priority: body.priority || 'medium',
-        status: body.status || 'todo',
-        user_id: userId,
-        goal_id: body.goal_id,
-      },
+        {
+          title: body.title,
+          description: body.description,
+          deadline: body.deadline,
+          priority: body.priority || 'medium',
+          status: body.status || 'todo',
+          user_id: userId,
+          goal_id: body.goal_id,
+          updated_at: new Date().toISOString(),
+        },
     ])
     .select();
 
