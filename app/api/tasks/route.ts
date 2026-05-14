@@ -39,7 +39,6 @@ export async function POST(request: Request) {
           status: body.status || 'todo',
           user_id: userId,
           goal_id: body.goal_id,
-          updated_at: new Date().toISOString(),
         },
     ])
     .select();
