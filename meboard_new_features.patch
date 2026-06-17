@@ -1,0 +1,400 @@
+diff --git a/app/page.tsx b/app/page.tsx
+index aa7701e..6fa351b 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
+ import { motion } from 'framer-motion';
+ import { 
+   CheckCircle2, Circle, Clock, TrendingUp, Calendar, Zap, Target, 
+-  Settings, User, Plus, Search, MoreHorizontal, ArrowRight, Loader2
++  Settings, User, Plus, Search, MoreHorizontal, ArrowRight, Loader2, Trash2
+ } from 'lucide-react';
+ 
+ export default function Dashboard() {
+@@ -17,11 +17,21 @@ export default function Dashboard() {
+   const [loading, setLoading] = useState(true);
+   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+-  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
++    const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
++  const [selectedHabitDays, setSelectedHabitDays] = useState<number[]>([]);
++  const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
++  const [selectedTask, setSelectedTask] = useState<any | null>(null);
++  const [taskDescription, setTaskDescription] = useState('');
++  const [goalStep, setGoalStep] = useState(1);
++  const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
+   
+   const [newTaskTitle, setNewTaskTitle] = useState('');
++  const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
++  const [newTaskTime, setNewTaskTime] = useState('');
++  const [isNewTaskAllDay, setIsNewTaskAllDay] = useState(true);
+   const [newGoalTitle, setNewGoalTitle] = useState('');
+   const [newHabitName, setNewHabitName] = useState('');
++  const [newHabitSchedule, setNewHabitSchedule] = useState('daily');
+   const [selectedGoalId, setSelectedGoalId] = useState('');
+   const [loginId, setLoginId] = useState('');
+ 
+@@ -96,17 +106,39 @@ export default function Dashboard() {
+     setUserId(null);
+   };
+ 
++  const openTaskModal = (date?: string) => {
++    setNewTaskTitle('');
++    setSelectedGoalId('');
++    setNewTaskDate(date || new Date().toISOString().split('T')[0]);
++    setNewTaskTime('');
++    setIsNewTaskAllDay(true);
++    setIsTaskModalOpen(true);
++  };
++
++  const formatTaskTime = (deadline?: string) => {
++    if (!deadline) return 'Весь день';
++    const date = new Date(deadline);
++    if (date.getHours() === 0 && date.getMinutes() === 0) return 'Весь день';
++    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
++  };
++
+   // Создание задачи
+   const addTask = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!newTaskTitle.trim() || !userId) return;
++    if (!isNewTaskAllDay && !newTaskTime) return;
++
++    const deadline = isNewTaskAllDay
++      ? newTaskDate
++      : `${newTaskDate}T${newTaskTime}:00`;
++
+     try {
+       await fetch('/api/tasks', {
+         method: 'POST',
+-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+-        body: JSON.stringify({ title: newTaskTitle, goal_id: selectedGoalId || null }),
++        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
++        body: JSON.stringify({ title: newTaskTitle, goal_id: selectedGoalId || null, deadline }),
+       });
+-      setNewTaskTitle(''); setSelectedGoalId(''); setIsTaskModalOpen(false);
++      setNewTaskTitle(''); setSelectedGoalId(''); setNewTaskTime(''); setIsNewTaskAllDay(true); setIsTaskModalOpen(false);
+       fetchData();
+     } catch (err) { console.error(err); }
+   };
+@@ -118,7 +150,7 @@ export default function Dashboard() {
+     try {
+       await fetch('/api/goals', {
+         method: 'POST',
+-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
++        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
+         body: JSON.stringify({ title: newGoalTitle }),
+       });
+       setNewGoalTitle(''); setIsGoalModalOpen(false);
+@@ -130,18 +162,43 @@ export default function Dashboard() {
+   const addHabit = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!newHabitName.trim() || !userId) return;
++
++    const schedulePayload =
++      newHabitSchedule === 'weekly'
++        ? { schedule_type: 'weekly', schedule_config: { weekdays: [new Date().getDay()] } }
++        : newHabitSchedule === 'every_other_day'
++          ? { schedule_type: 'custom', schedule_config: { interval: 2 } }
++          : { schedule_type: 'daily', schedule_config: {} };
++
+     try {
+       await fetch('/api/habits', {
+         method: 'POST',
+-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+-        body: JSON.stringify({ name: newHabitName, schedule_type: 'daily' }),
++        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
++        body: JSON.stringify({ name: newHabitName, ...schedulePayload }),
+       });
+-      setNewHabitName(''); setIsHabitModalOpen(false);
++      setNewHabitName(''); setNewHabitSchedule('daily'); setIsHabitModalOpen(false);
+       fetchData();
+     } catch (err) { console.error(err); }
+   };
+ 
+   // Удаление задачи
++    const updateTaskDescription = async () => {
++    if (!selectedTask) return;
++    try {
++      const res = await fetch(`/api/tasks/${selectedTask.id}`, {
++        method: 'PATCH',
++        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
++        body: JSON.stringify({ description: taskDescription }),
++      });
++      if (res.ok) {
++        setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: taskDescription } : t));
++        setIsTaskDetailModalOpen(false);
++      }
++    } catch (err) {
++      console.error(err);
++    }
++  };
++
+   const deleteTask = async (id: string) => {
+     if (!confirm('Удалить эту задачу?') || !userId) return;
+     try {
+@@ -150,6 +207,15 @@ export default function Dashboard() {
+     } catch (err) { console.error(err); }
+   };
+ 
++  // Удаление цели
++  const deleteGoal = async (id: string) => {
++    if (!confirm('Удалить эту цель? Связанные задачи останутся без цели.') || !userId) return;
++    try {
++      await fetch(`/api/goals/${id}`, { method: 'DELETE', headers: { 'x-user-id': userId } });
++      fetchData();
++    } catch (err) { console.error(err); }
++  };
++
+   // Переключение статуса задачи
+   const toggleTask = async (id: string, currentStatus: string) => {
+     if (!userId) return;
+@@ -158,7 +224,7 @@ export default function Dashboard() {
+     try {
+       await fetch(`/api/tasks/${id}`, {
+         method: 'PATCH',
+-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
++        headers: { 'Content-Type': 'application/json', 'x-user-id': userId || '' },
+         body: JSON.stringify({ status: newStatus }),
+       });
+       fetchData();
+@@ -253,6 +319,14 @@ export default function Dashboard() {
+             <h2 className="serif" style={{ marginBottom: '2rem' }}>Новая задача</h2>
+             <form onSubmit={addTask}>
+               <input autoFocus type="text" placeholder="Что планируете сделать?" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="elegant-input" />
++              <input type="date" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} className="elegant-input compact-input" />
++              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
++                <button type="button" onClick={() => setIsNewTaskAllDay(true)} className={isNewTaskAllDay ? 'btn-primary' : 'btn-secondary'}>Весь день</button>
++                <button type="button" onClick={() => setIsNewTaskAllDay(false)} className={!isNewTaskAllDay ? 'btn-primary' : 'btn-secondary'}>По времени</button>
++              </div>
++              {!isNewTaskAllDay && (
++                <input type="time" value={newTaskTime} onChange={e => setNewTaskTime(e.target.value)} className="elegant-input compact-input" required />
++              )}
+               <select value={selectedGoalId} onChange={e => setSelectedGoalId(e.target.value)} className="elegant-select">
+                 <option value="">Без цели</option>
+                 {goals.map(goal => <option key={goal.id} value={goal.id}>{goal.title}</option>)}
+@@ -289,7 +363,12 @@ export default function Dashboard() {
+             <h2 className="serif" style={{ marginBottom: '2rem' }}>Новая привычка</h2>
+             <form onSubmit={addHabit}>
+               <input autoFocus type="text" placeholder="Название привычки (напр. Чтение)" value={newHabitName} onChange={e => setNewHabitName(e.target.value)} className="elegant-input" />
+-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Будет появляться в вашем списке ежедневно.</p>
++              <select value={newHabitSchedule} onChange={e => setNewHabitSchedule(e.target.value)} className="elegant-select">
++                <option value="daily">Ежедневно</option>
++                <option value="every_other_day">Через день</option>
++                <option value="weekly">Раз в неделю</option>
++              </select>
++              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Частоту можно выбрать при создании привычки.</p>
+               <div style={{ display: 'flex', gap: '1rem' }}>
+                 <button type="button" onClick={() => setIsHabitModalOpen(false)} className="btn-secondary">Отмена</button>
+                 <button type="submit" className="btn-primary">Добавить</button>
+@@ -365,7 +444,7 @@ export default function Dashboard() {
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+                 <h2 style={{ fontSize: '2rem' }}>Планы на день</h2>
+                 <div 
+-                  onClick={() => setIsTaskModalOpen(true)}
++                  onClick={() => openTaskModal()}
+                   style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', cursor: 'pointer', fontSize: '0.9rem' }}
+                 >
+                   Добавить <Plus size={16} />
+@@ -390,7 +469,7 @@ export default function Dashboard() {
+                         color: task.status === 'done' ? 'var(--text-secondary)' : 'var(--text-primary)'
+                       }} className="serif">{task.title}</h4>
+                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+-                        {task.deadline ? new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Весь день'}
++                        {formatTaskTime(task.deadline)}
+                       </p>
+                     </div>
+                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+@@ -420,7 +499,10 @@ export default function Dashboard() {
+                   <div key={goal.id} style={{ marginBottom: '2rem' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                       <span className="serif" style={{ fontSize: '1.1rem' }}>{goal.title}</span>
+-                      <span style={{ color: 'var(--accent-gold)', fontSize: '0.9rem' }}>{goal.progress}%</span>
++                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
++                        <span style={{ color: 'var(--accent-gold)', fontSize: '0.9rem' }}>{goal.progress}%</span>
++                        <Trash2 size={14} color="var(--text-secondary)" style={{ cursor: 'pointer', opacity: 0.45 }} onClick={() => deleteGoal(goal.id)} />
++                      </div>
+                     </div>
+                     <div className="progress-bar">
+                       <motion.div initial={{ width: 0 }} animate={{ width: `${goal.progress}%` }} className="progress-fill" />
+@@ -522,12 +604,13 @@ export default function Dashboard() {
+                       onClick={() => setSelectedDate(dateStr)}
+                       className="calendar-day"
+                       style={{ 
+-                        background: isSelected ? 'var(--bg-color)' : 'white', 
++                        
+                         padding: '1rem', 
+                         position: 'relative',
+                         transition: 'all 0.3s ease', 
+                         cursor: 'pointer',
+-                        boxShadow: hasHabits ? 'inset 0 0 20px rgba(184, 158, 103, 0.1)' : 'none',
++                        background: isSelected ? 'var(--bg-color)' : (hasHabits ? `linear-gradient(135deg, white 0%, rgba(184, 158, 103, ${Math.min(dayLogs.length * 0.15, 0.4)}) 100%)` : 'white'),
++                        boxShadow: hasHabits ? '0 4px 15px rgba(184, 158, 103, 0.05)' : 'none',
+                         border: isSelected ? '1px solid var(--accent-gold)' : 'none',
+                         zIndex: isSelected ? 10 : 1,
+                         minHeight: '80px'
+@@ -562,6 +645,12 @@ export default function Dashboard() {
+               <h3 className="serif" style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>
+                 Планы на {new Date(selectedDate).toLocaleDateString('ru', { day: 'numeric', month: 'long' })}
+               </h3>
++              <div
++                onClick={() => openTaskModal(selectedDate)}
++                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', cursor: 'pointer', fontSize: '0.9rem', marginBottom: '2rem' }}
++              >
++                Добавить <Plus size={16} />
++              </div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                 {tasks.filter(t => t.deadline?.startsWith(selectedDate)).length === 0 ? (
+                   <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>В этот день пока нет назначенных задач.</p>
+@@ -570,7 +659,10 @@ export default function Dashboard() {
+                     <div key={task.id} className="todo-item" style={{ padding: '1rem 0' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                         {task.status === 'done' ? <CheckCircle2 size={18} color="var(--accent-primary)" /> : <Circle size={18} color="var(--text-secondary)" />}
+-                        <span style={{ fontSize: '1.1rem', textDecoration: task.status === 'done' ? 'line-through' : 'none', opacity: task.status === 'done' ? 0.5 : 1 }}>{task.title}</span>
++                        <div>
++                          <span style={{ fontSize: '1.1rem', textDecoration: task.status === 'done' ? 'line-through' : 'none', opacity: task.status === 'done' ? 0.5 : 1 }}>{task.title}</span>
++                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{formatTaskTime(task.deadline)}</p>
++                        </div>
+                       </div>
+                     </div>
+                   ))
+@@ -583,6 +675,88 @@ export default function Dashboard() {
+ 
+       {activeTab === 'goals_all' && (
+         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
++                    {/* Визуализация Созвездие */}
++          <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem', textAlign: 'center', overflow: 'hidden', position: 'relative' }}>
++            <h3 className="serif" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Ваше созвездие недели</h3>
++            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '2rem' }}>Зажигайте звезды, выполняя привычки</p>
++            <div style={{ height: '200px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
++              <svg width="100%" height="100%" viewBox="0 0 400 200" style={{ maxWidth: '600px' }}>
++                {(() => {
++                  const points = [...Array(7)].map((_, i) => {
++                    const d = new Date();
++                    d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1) + i);
++                    const dateStr = d.toISOString().split('T')[0];
++                    const doneCount = habitLogs.filter(l => l.date === dateStr && l.completed).length;
++                    const x = 50 + i * 50;
++                    const y = 150 - (doneCount * 30);
++                    return { x, y, active: doneCount > 0, date: dateStr };
++                  });
++
++                  return (
++                    <>
++                      {/* Линии созвездия */}
++                      {points.map((p, i) => i < points.length - 1 && p.active && points[i+1].active && (
++                        <motion.line 
++                          key={`line-${i}`}
++                          initial={{ pathLength: 0 }}
++                          animate={{ pathLength: 1 }}
++                          x1={p.x} y1={p.y} x2={points[i+1].x} y2={points[i+1].y} 
++                          stroke="var(--accent-gold)" strokeWidth="1" strokeDasharray="4 2" opacity="0.4"
++                        />
++                      ))}
++                      {/* Звезды */}
++                      {points.map((p, i) => (
++                        <g key={`star-${i}`}>
++                          <motion.circle 
++                            cx={p.x} cy={p.y} r={p.active ? 4 : 2} 
++                            fill={p.active ? 'var(--accent-gold)' : 'var(--border-elegant)'}
++                            animate={p.active ? { r: [4, 6, 4], opacity: [0.6, 1, 0.6] } : {}}
++                            transition={{ repeat: Infinity, duration: 2 + i }}
++                          />
++                          {p.active && (
++                            <circle cx={p.x} cy={p.y} r="10" fill="var(--accent-gold)" opacity="0.1" />
++                          )}
++                        </g>
++                      ))}
++                    </>
++                  );
++                })()}
++              </svg>
++            </div>
++          </div>
++          {/* Heatmap привычек */}
++          <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem' }}>
++            <h3 className="serif" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Трекер привычек (30 дней)</h3>
++            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
++              {habits.map(habit => (
++                <div key={habit.id}>
++                  <p style={{ fontSize: '0.9rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>{habit.name}</p>
++                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
++                    {[...Array(30)].map((_, i) => {
++                      const d = new Date();
++                      d.setDate(d.getDate() - (29 - i));
++                      const dateStr = d.toISOString().split('T')[0];
++                      const isDone = habitLogs.some(l => l.habit_id === habit.id && l.date === dateStr && l.completed);
++                      return (
++                        <div 
++                          key={i} 
++                          title={dateStr}
++                          style={{ 
++                            width: '12px', 
++                            height: '12px', 
++                            borderRadius: '2px', 
++                            background: isDone ? 'var(--accent-primary)' : 'var(--border-elegant)',
++                            opacity: isDone ? 1 : 0.3
++                          }} 
++                        />
++                      );
++                    })}
++                  </div>
++                </div>
++              ))}
++              {habits.length === 0 && <p style={{ fontSize: '0.9rem', opacity: 0.7 }}>Добавьте привычки, чтобы увидеть прогресс</p>}
++            </div>
++          </div>
+           {/* График активности */}
+           <div className="glass-card" style={{ padding: '3rem', marginBottom: '3rem' }}>
+             <h3 className="serif" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Ритм вашей продуктивности</h3>
+@@ -592,8 +766,9 @@ export default function Dashboard() {
+                   const d = new Date();
+                   d.setDate(d.getDate() - (6 - i));
+                   const dateStr = d.toISOString().split('T')[0];
+-                  const count = tasks.filter(t => t.status === 'done' && t.updated_at?.startsWith(dateStr)).length;
+-                  return { day: d.toLocaleDateString('ru', { weekday: 'short' }), count };
++                  const taskCount = tasks.filter(t => t.status === 'done' && t.updated_at?.startsWith(dateStr)).length;
++                  const habitCount = habitLogs.filter(l => l.completed && l.date === dateStr).length;
++                  return { day: d.toLocaleDateString('ru', { weekday: 'short' }), count: taskCount + habitCount };
+                 });
+                 const maxCount = Math.max(...last7Days.map(d => d.count), 1);
+                 
+@@ -619,7 +794,10 @@ export default function Dashboard() {
+                     <h3 className="serif" style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>{goal.title}</h3>
+                     <p style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Архитектура достижений</p>
+                   </div>
+-                  <span style={{ fontSize: '2.5rem', fontWeight: 300, color: 'var(--accent-gold)', opacity: 0.5 }}>{goal.progress}%</span>
++                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
++                    <span style={{ fontSize: '2.5rem', fontWeight: 300, color: 'var(--accent-gold)', opacity: 0.5 }}>{goal.progress}%</span>
++                    <Trash2 size={18} color="var(--text-secondary)" style={{ cursor: 'pointer', opacity: 0.45 }} onClick={() => deleteGoal(goal.id)} />
++                  </div>
+                 </div>
+ 
+                 <div className="progress-bar" style={{ height: '6px', marginBottom: '3rem' }}>
+@@ -646,6 +824,26 @@ export default function Dashboard() {
+           </div>
+         </motion.div>
+       )}
++      {/* Модальное окно заметок задачи */}
++      {isTaskDetailModalOpen && (
++        <div className="modal-overlay" onClick={() => setIsTaskDetailModalOpen(false)}>
++          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card modal-content" onClick={e => e.stopPropagation()}>
++            <h2 style={{ marginBottom: '1.5rem' }}>{selectedTask?.title}</h2>
++            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Заметки к задаче</p>
++            <textarea 
++              className="elegant-input" 
++              style={{ fontSize: '1rem', minHeight: '150px', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border-elegant)' }}
++              value={taskDescription}
++              onChange={(e) => setTaskDescription(e.target.value)}
++              placeholder="Добавьте детали или подзадачи..."
++            />
++            <div style={{ display: 'flex', gap: '1rem' }}>
++              <button className="btn-primary" onClick={updateTaskDescription}>Сохранить</button>
++              <button className="btn-primary" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-elegant)' }} onClick={() => setIsTaskDetailModalOpen(false)}>Закрыть</button>
++            </div>
++          </motion.div>
++        </div>
++      )}
+     </main>
+   );
+ }

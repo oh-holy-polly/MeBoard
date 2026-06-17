@@ -571,7 +571,7 @@ export default function Dashboard() {
             className={`nav-item ${activeTab === 'goals_all' ? 'active' : ''}`}
             onClick={() => setActiveTab('goals_all')}
           >
-            Цели
+            Прогресс
           </div>
         </div>
         

@@ -1,49 +1,14 @@
-import { Telegraf } from 'telegraf';
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
-import cron from 'node-cron';
-dotenv.config({ path: '.env.local' });
+import { Context } from 'telegraf';
+import { supabase } from './supabase';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-
-console.log('Starting Telegram Bot in polling mode...');
-
-// Регистрация / Поиск пользователя
-async function getOrCreateUser(ctx) {
-  const { id: telegram_id, username, first_name } = ctx.from;
-  
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('telegram_id', telegram_id)
-    .single();
-
-  if (user) return user;
-
-  const { data: newUser, error: createError } = await supabase
-    .from('users')
-    .insert([{ telegram_id, username: username || first_name }])
-    .select()
-    .single();
-
-  return newUser;
-}
-
-// --- Функции рефлексии (день наблюдения) ---
-
-function getLocalDateStr(date = new Date()) {
+export function getLocalDateStr(date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
-async function callOpenAI(apiKey, responsesText) {
+async function callOpenAI(apiKey: string, responsesText: string): Promise<string> {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -77,7 +42,7 @@ async function callOpenAI(apiKey, responsesText) {
   }
 }
 
-async function callGemini(apiKey, responsesText) {
+async function callGemini(apiKey: string, responsesText: string): Promise<string> {
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
@@ -104,7 +69,7 @@ async function callGemini(apiKey, responsesText) {
   }
 }
 
-async function callGroq(apiKey, responsesText) {
+async function callGroq(apiKey: string, responsesText: string): Promise<string> {
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -138,7 +103,7 @@ async function callGroq(apiKey, responsesText) {
   }
 }
 
-async function generateAIAnalysis(responsesText) {
+async function generateAIAnalysis(responsesText: string): Promise<string> {
   const groqKey = process.env.GROQ_API_KEY;
   if (groqKey) {
     return callGroq(groqKey, responsesText);
@@ -154,7 +119,7 @@ async function generateAIAnalysis(responsesText) {
   return callOpenAI(apiKey, responsesText);
 }
 
-function chunkString(str, length) {
+function chunkString(str: string, length: number): string[] {
   const size = Math.ceil(str.length / length);
   const r = new Array(size);
   let offset = 0;
@@ -165,7 +130,7 @@ function chunkString(str, length) {
   return r;
 }
 
-async function runAIAnalysisAndSend(ctx, reflectionId, username) {
+export async function runAIAnalysisAndSend(ctx: Context, reflectionId: string, username?: string): Promise<void> {
   try {
     const { data: responses, error } = await supabase
       .from('reflection_responses')
@@ -210,11 +175,12 @@ async function runAIAnalysisAndSend(ctx, reflectionId, username) {
   }
 }
 
-async function handleBotState(ctx, user, text) {
+export async function handleBotState(ctx: Context, user: any, text: string): Promise<boolean> {
   const botState = user.settings?.bot_state;
   if (!botState || !botState.type) return false;
 
-  const rawText = ctx.message.text.trim();
+  const rawText = (ctx.message as any)?.text?.trim();
+  if (!rawText) return false;
 
   if (text === 'отмена' || text === '/cancel') {
     const updatedSettings = { ...(user.settings || {}) };
@@ -435,199 +401,7 @@ async function handleBotState(ctx, user, text) {
   }
 }
 
-bot.start(async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  ctx.reply(`Привет, ${user.username}! Добро пожаловать в MeBoard. \n\nОтправьте мне любую задачу, и я добавлю её в ваш список.`);
-});
-
-bot.command('id', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  ctx.reply(`Ваш MeBoard ID:\n\n\`${user.id}\``, { parse_mode: 'MarkdownV2' });
-});
-
-bot.command('today', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('status', 'todo');
-
-  if (!tasks?.length) {
-    return ctx.reply('На сегодня задач нет! Отдыхайте.');
-  }
-
-  const list = tasks.map(t => `• ${t.title}`).join('\n');
-  ctx.reply(`Ваши задачи на сегодня:\n\n${list}`);
-});
-
-// --- Функции уведомлений ---
-const getMorningMessage = async (user) => {
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('status', 'todo');
-
-  return tasks?.length 
-    ? `Доброе утро, ${user.username}! ✨\nВаши планы на сегодня:\n\n${tasks.map(t => `• ${t.title}`).join('\n')}`
-    : `Доброе утро! Планов на сегодня пока нет. Время для вдохновения? ☕`;
-};
-
-const getEveningMessage = async (user) => {
-  const { data: habits } = await supabase.from('habits').select('*').eq('user_id', user.id);
-  // Здесь можно добавить детальную логику привычек
-  return `Вечерний MeBoard. 🏛️\nНе забудьте отметить выполненные привычки на сайте и подвести итоги дня.`;
-};
-
-// --- Команды ---
-bot.command('goals', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  const { data: goals } = await supabase.from('goals').select('*').eq('user_id', user.id);
-  
-  if (!goals?.length) return ctx.reply('Целей пока нет. Время помечтать? 🎯');
-  
-  const list = goals.map(g => `• *${g.title}* — ${g.progress}%`).join('\n');
-  ctx.reply(`Ваши цели:\n\n${list}`, { parse_mode: 'Markdown' });
-});
-
-bot.command('habits', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  const { data: habits } = await supabase.from('habits').select('*').eq('user_id', user.id);
-  
-  if (!habits?.length) return ctx.reply('Привычек пока нет. Самое время завести полезную традицию! 💎');
-  
-  const list = habits.map(h => `• ${h.name}`).join('\n');
-  ctx.reply(`Ваши привычки:\n\n${list}`);
-});
-
-bot.command('stat', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const { data: doneTasks } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('status', 'done')
-    .gte('updated_at', sevenDaysAgo.toISOString());
-
-  ctx.reply(`Статистика за 7 дней 📈\n\n✅ Выполнено задач: ${doneTasks?.length || 0}\n🏛️ Вы на верном пути к своим целям!`);
-});
-
-bot.command('help', async (ctx) => {
-  const helpText = `
-📜 *Команды MeBoard:*
-
-/today — Планы на сегодня
-/goals — Ваши цели и прогресс
-/habits — Список привычек
-/stat — Успехи за неделю
-/id — Ваш секретный MeBoard ID
-/morning — Утренний дайджест
-/evening — Вечерний отчет
-/reflection — Начать день рефлексии (наблюдения)
-/cancel — Отменить настройку/ответ рефлексии
-
-💡 *Умные функции:*
-Просто напишите: "удали [текст]", чтобы стереть задачу.
-Любое другое сообщение добавит новую задачу в список.
-  `;
-  ctx.reply(helpText, { parse_mode: 'Markdown' });
-});
-
-bot.command('reflection', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  if (!user) return ctx.reply('Пользователь не найден.');
-
-  const updatedSettings = {
-    ...(user.settings || {}),
-    bot_state: {
-      type: 'setup_reflection_start'
-    }
-  };
-  await supabase.from('users').update({ settings: updatedSettings }).eq('id', user.id);
-
-  await ctx.reply(
-    'Завтра будет день наблюдения (рефлексии). Я буду присылать тебе вопросы каждый час.\n\n' +
-    'Во сколько ты завтра просыпаешься? (Введи час начала от 0 до 23, например: 9)\n\n' +
-    'Для отмены введи /cancel в любой момент.'
-  );
-});
-
-bot.command('cancel', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  if (!user) return;
-  const updatedSettings = { ...(user.settings || {}) };
-  delete updatedSettings.bot_state;
-  await supabase.from('users').update({ settings: updatedSettings }).eq('id', user.id);
-  await ctx.reply('Действие отменено.', { reply_markup: { remove_keyboard: true } });
-});
-
-bot.command('morning', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  ctx.reply(await getMorningMessage(user));
-});
-
-bot.command('evening', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  ctx.reply(await getEveningMessage(user));
-});
-
-bot.on('text', async (ctx) => {
-  const user = await getOrCreateUser(ctx);
-  const text = ctx.message.text.toLowerCase().trim();
-
-  // Сначала проверяем состояние бота (активная рефлексия)
-  const stateHandled = await handleBotState(ctx, user, text);
-  if (stateHandled) return;
-
-  if (text.startsWith('удали') || text.startsWith('delete')) {
-    const query = text.replace(/удали|удалить|delete/g, '').trim();
-    if (!query) return ctx.reply('Что именно нужно удалить?');
-
-    const { data: foundTasks } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', user.id)
-      .ilike('title', `%${query}%`)
-      .limit(1);
-
-    if (!foundTasks?.length) return ctx.reply(`Не нашел задачу "${query}".`);
-    await supabase.from('tasks').delete().eq('id', foundTasks[0].id);
-    return ctx.reply(`🗑️ Удалено: "${foundTasks[0].title}"`);
-  }
-
-  if (text === 'список' || text === 'планы' || text === 'list') {
-    ctx.reply(await getMorningMessage(user));
-    return;
-  }
-
-  const { error } = await supabase
-    .from('tasks')
-    .insert([{ title: ctx.message.text, user_id: user.id, status: 'todo' }]);
-
-  if (error) return ctx.reply('Ошибка сохранения.');
-  ctx.reply(`✅ Добавлено: "${ctx.message.text}"`);
-});
-
-// --- Планировщик ---
-cron.schedule('0 9 * * *', async () => {
-  const { data: users } = await supabase.from('users').select('*');
-  for (const user of users) {
-    if (user.telegram_id) bot.telegram.sendMessage(user.telegram_id, await getMorningMessage(user));
-  }
-});
-
-cron.schedule('0 21 * * *', async () => {
-  const { data: users } = await supabase.from('users').select('*');
-  for (const user of users) {
-    if (user.telegram_id) bot.telegram.sendMessage(user.telegram_id, await getEveningMessage(user));
-  }
-});
-
-async function checkAndSendReflectionPings() {
+export async function checkAndSendReflectionPings(botInstance: any): Promise<void> {
   try {
     const todayStr = getLocalDateStr();
     const currentHour = new Date().getHours();
@@ -644,7 +418,7 @@ async function checkAndSendReflectionPings() {
     }
 
     for (const ref of reflections) {
-      const user = ref.users;
+      const user = (ref as any).users;
       if (!user || !user.telegram_id) continue;
 
       if (currentHour >= ref.start_hour && currentHour <= ref.end_hour) {
@@ -679,7 +453,7 @@ async function checkAndSendReflectionPings() {
           if (currentHour === ref.start_hour) {
             greeting = `Доброе утро, ${user.username || 'друг'} 🙂\nНачинаем день наблюдения. Отвечай честно — первое что приходит, без обдумывания.\n\nО чём ты сейчас думаешь?`;
           }
-          await bot.telegram.sendMessage(user.telegram_id, greeting);
+          await botInstance.telegram.sendMessage(user.telegram_id, greeting);
         }
       }
     }
@@ -687,11 +461,3 @@ async function checkAndSendReflectionPings() {
     console.error('Error in checkAndSendReflectionPings:', err);
   }
 }
-
-cron.schedule('* * * * *', checkAndSendReflectionPings);
-
-bot.launch().then(() => console.log('Bot is running!'));
-
-// Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
