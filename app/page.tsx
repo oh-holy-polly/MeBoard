@@ -554,7 +554,7 @@ export default function Dashboard() {
 
       {/* Навигация */}
       <nav className="nav-menu" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6rem' }}>
-        <div style={{ display: 'flex', gap: '3rem' }}>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <div 
             className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} 
             onClick={() => setActiveTab('dashboard')}
@@ -562,20 +562,21 @@ export default function Dashboard() {
             Дашборд
           </div>
           <div 
-            className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-            onClick={() => setActiveTab('calendar')}
-          >
-            Календарь
-          </div>
-          <div 
             className={`nav-item ${activeTab === 'goals_all' ? 'active' : ''}`}
             onClick={() => setActiveTab('goals_all')}
           >
             Прогресс
           </div>
+          <div 
+            className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+            onClick={() => setActiveTab('calendar')}
+            style={{ display: 'flex', alignItems: 'center' }}
+          >
+            <Calendar size={20} />
+          </div>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Settings size={20} color="var(--text-secondary)" cursor="pointer" />
           <div 
             onClick={handleLogout}
