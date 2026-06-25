@@ -225,8 +225,10 @@ export async function handleBotState(ctx: Context, user: any, text: string): Pro
       }
 
       const startHour = botState.start_hour;
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      // Считаем "завтра" по локальному времени (UTC+3), а не по UTC сервера
+      const nowLocal = new Date(Date.now() + TZ_OFFSET_HOURS * 60 * 60 * 1000);
+      const tomorrow = new Date(nowLocal);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
       const dateStr = getLocalDateStr(tomorrow);
 
       const { error } = await supabase
