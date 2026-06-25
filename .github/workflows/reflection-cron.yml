@@ -1,0 +1,18 @@
+name: Reflection Cron
+
+on:
+  schedule:
+    # Каждый час в 0 минут (UTC). Для UTC+3 это значит пинги будут в X:00 по московскому времени.
+    - cron: '0 * * * *'
+  workflow_dispatch: # Позволяет запустить вручную для теста
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call reflection cron endpoint
+        run: |
+          curl -f -s \
+            "${{ secrets.VERCEL_APP_URL }}/api/cron/reflection?token=${{ secrets.CRON_SECRET }}" \
+            && echo "Cron executed successfully" \
+            || echo "Cron request failed"
