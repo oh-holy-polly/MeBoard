@@ -569,15 +569,15 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div 
             className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
             onClick={() => setActiveTab('calendar')}
             style={{ display: 'flex', alignItems: 'center', padding: 0 }}
           >
-            <Calendar size={24} color={activeTab === 'calendar' ? 'var(--accent-gold)' : 'var(--text-secondary)'} />
+            <Calendar size={20} color={activeTab === 'calendar' ? 'var(--accent-gold)' : 'var(--text-secondary)'} />
           </div>
-          <Settings size={24} color="var(--text-secondary)" cursor="pointer" />
+          <Settings size={20} color="var(--text-secondary)" cursor="pointer" />
           <div 
             onClick={handleLogout}
             title="Выйти"
