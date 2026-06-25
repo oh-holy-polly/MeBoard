@@ -554,7 +554,7 @@ export default function Dashboard() {
 
       {/* Навигация */}
       <nav className="nav-menu" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <div 
             className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} 
             onClick={() => setActiveTab('dashboard')}
@@ -567,21 +567,21 @@ export default function Dashboard() {
           >
             Прогресс
           </div>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div 
             className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
             onClick={() => setActiveTab('calendar')}
-            style={{ display: 'flex', alignItems: 'center' }}
+            style={{ display: 'flex', alignItems: 'center', padding: 0 }}
           >
-            <Calendar size={20} />
+            <Calendar size={20} color={activeTab === 'calendar' ? 'var(--accent-gold)' : 'var(--text-secondary)'} />
           </div>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Settings size={20} color="var(--text-secondary)" cursor="pointer" />
           <div 
             onClick={handleLogout}
             title="Выйти"
-            style={{ width: '44px', height: '44px', borderRadius: '50%', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px', cursor: 'pointer' }}>
+            style={{ width: '44px', height: '44px', borderRadius: '50%', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px', cursor: 'pointer', marginLeft: '0.5rem' }}>
             <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <User size={20} color="white" />
             </div>
