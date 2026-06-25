@@ -72,6 +72,10 @@ h1, h2, h3, .serif {
   letter-spacing: -0.01em;
 }
 
+.calendar-title {
+  font-size: 2.5rem;
+}
+
 .glass-card {
   background: rgba(255, 255, 255, 0.45); /* Lower opacity for better mesh visibility */
   backdrop-filter: blur(25px);
@@ -180,6 +184,10 @@ h1, h2, h3, .serif {
 
   h1 {
     font-size: 2rem !important;
+  }
+
+  .calendar-title {
+    font-size: 1.8rem !important;
   }
 
   .calendar-grid {

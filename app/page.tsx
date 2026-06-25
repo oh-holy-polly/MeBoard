@@ -771,8 +771,8 @@ export default function Dashboard() {
                 style={{ transform: 'rotate(180deg)', cursor: 'pointer', opacity: 0.6 }} 
                 onClick={prevMonth}
               />
-              <h2 className="serif" style={{ fontSize: '2.5rem', textAlign: 'center', flex: 1 }}>
-                {currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' })}
+              <h2 className="serif calendar-title" style={{ textAlign: 'center', flex: 1, margin: '0 1rem' }}>
+                {currentDate.toLocaleString('ru', { month: 'long' }).charAt(0).toUpperCase() + currentDate.toLocaleString('ru', { month: 'long' }).slice(1)} {currentDate.getFullYear()}
               </h2>
               <ArrowRight 
                 size={24} 
