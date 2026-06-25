@@ -1,11 +1,18 @@
 import { Context } from 'telegraf';
 import { supabase } from './supabase';
 
+const TZ_OFFSET_HOURS = parseInt(process.env.TZ_OFFSET_HOURS || '3', 10);
+
 export function getLocalDateStr(date = new Date()): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const local = new Date(date.getTime() + TZ_OFFSET_HOURS * 60 * 60 * 1000);
+  const y = local.getUTCFullYear();
+  const m = String(local.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(local.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function getLocalHour(): number {
+  return (new Date().getUTCHours() + TZ_OFFSET_HOURS) % 24;
 }
 
 async function callOpenAI(apiKey: string, responsesText: string): Promise<string> {
@@ -404,7 +411,7 @@ export async function handleBotState(ctx: Context, user: any, text: string): Pro
 export async function checkAndSendReflectionPings(botInstance: any): Promise<void> {
   try {
     const todayStr = getLocalDateStr();
-    const currentHour = new Date().getHours();
+    const currentHour = getLocalHour();
 
     const { data: reflections, error } = await supabase
       .from('reflections')
