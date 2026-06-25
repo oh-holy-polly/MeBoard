@@ -554,7 +554,7 @@ export default function Dashboard() {
 
       {/* Навигация */}
       <nav className="nav-menu" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6rem' }}>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div 
             className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} 
             onClick={() => setActiveTab('dashboard')}
@@ -576,7 +576,7 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Settings size={20} color="var(--text-secondary)" cursor="pointer" />
           <div 
             onClick={handleLogout}
