@@ -575,15 +575,15 @@ export default function Dashboard() {
             onClick={() => setActiveTab('calendar')}
             style={{ display: 'flex', alignItems: 'center', padding: 0 }}
           >
-            <Calendar size={18} color={activeTab === 'calendar' ? 'var(--accent-gold)' : 'var(--text-secondary)'} />
+            <Calendar size={20} color={activeTab === 'calendar' ? 'var(--accent-gold)' : 'var(--text-secondary)'} />
           </div>
-          <Settings size={18} color="var(--text-secondary)" cursor="pointer" />
+          <Settings size={20} color="var(--text-secondary)" cursor="pointer" />
           <div 
             onClick={handleLogout}
             title="Выйти"
-            style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px', cursor: 'pointer' }}>
+            style={{ width: '42px', height: '42px', borderRadius: '50%', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px', cursor: 'pointer' }}>
             <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <User size={16} color="white" />
+              <User size={20} color="white" />
             </div>
           </div>
         </div>
