@@ -101,7 +101,7 @@ h1, h2, h3, .serif {
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
-  padding: 0 10px;
+  padding: 0 6px;
 }
 
 .nav-item.active {
